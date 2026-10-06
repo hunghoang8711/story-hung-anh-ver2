@@ -9,10 +9,27 @@ function esc(v="") {
 }
 
 let currentUser = null;
+let currentCoupleId = null;
 
 async function loadUser() {
   const { data } = await supabase.auth.getUser();
   currentUser = data.user || null;
+  currentCoupleId = null;
+
+  if (currentUser) {
+    const { data: membership, error } = await supabase
+      .from("couple_members")
+      .select("couple_id")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+    } else {
+      currentCoupleId = membership?.couple_id || null;
+    }
+  }
+
   updateAuthUI();
   await loadStories();
 }
@@ -24,9 +41,17 @@ function updateAuthUI() {
 }
 
 async function loadStories() {
+  if (!currentUser || !currentCoupleId) {
+    $("#timeline").innerHTML = "";
+    $("#storyCount").textContent = "0";
+    $("#emptyState").hidden = false;
+    return;
+  }
+
   const { data, error } = await supabase
     .from("stories")
     .select("id, story_date, title, content, created_at, author_id")
+    .eq("couple_id", currentCoupleId)
     .order("story_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -127,7 +152,15 @@ $("#storyForm").addEventListener("submit", async e => {
   submit.disabled = true;
   submit.textContent = "Đang lưu…";
 
+  if (!currentCoupleId) {
+    $("#storyFormError").textContent = "Không tìm thấy kết nối của hai tài khoản. Hãy kiểm tra couple_members trong Supabase.";
+    submit.disabled = false;
+    submit.textContent = "Lưu kỷ niệm ❤️";
+    return;
+  }
+
   const { error } = await supabase.from("stories").insert({
+    couple_id: currentCoupleId,
     author_id: currentUser.id,
     story_date: storyDate,
     title,
