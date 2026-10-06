@@ -786,3 +786,84 @@ input[type=file]{padding:.7rem}
     transform:translateX(-50%) rotate(45deg);
   }
 }
+
+
+/* FINAL HEART FIX: remove the animated filled heart and use a reversed outline heart
+   joined directly to the end of the timeline. */
+@media (min-width:701px){
+  .timeline:after{
+    content:"♡";
+    position:absolute;
+    left:50%;
+    top:calc(100% + 2px);
+    bottom:auto;
+    transform:translateX(-50%) rotate(180deg);
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    color:#ff4058;
+    font:400 42px/1 Georgia,serif;
+    background:transparent;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+    filter:drop-shadow(0 0 7px rgba(255,48,77,.4));
+    animation:none !important;
+    z-index:5;
+  }
+
+  .timeline:after::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-18px;
+    width:4px;
+    height:20px;
+    transform:translateX(-50%);
+    background:#e52d48;
+    border-radius:999px;
+    box-shadow:0 0 10px rgba(229,45,72,.3);
+  }
+
+  .timeline:after::after{
+    display:none;
+  }
+}
+
+@media (max-width:700px){
+  .timeline:after{
+    content:"♡";
+    position:absolute;
+    left:10px;
+    top:calc(100% + 2px);
+    bottom:auto;
+    transform:translateX(-50%) rotate(180deg);
+    width:40px;
+    height:40px;
+    display:grid;
+    place-items:center;
+    color:#ff4058;
+    font:400 40px/1 Georgia,serif;
+    background:transparent;
+    border:0;
+    box-shadow:none;
+    filter:drop-shadow(0 0 7px rgba(255,48,77,.4));
+    animation:none !important;
+    z-index:5;
+  }
+
+  .timeline:after::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-17px;
+    width:4px;
+    height:19px;
+    transform:translateX(-50%);
+    background:#e52d48;
+    border-radius:999px;
+  }
+
+  .timeline:after::after{display:none}
+}
