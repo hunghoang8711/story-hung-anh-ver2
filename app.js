@@ -19,6 +19,39 @@ let currentCoupleId = null;
 let realtimeChannel = null;
 let editingStory = null;
 
+const LEGACY_MEMORIES = [
+["2022-07-07","Ngày khởi đầu","Ngày bắt đầu làm quen với Ánh"],
+["2022-08-10","Lần đầu gặp Ánh - Buổi xem phim bão tố :))","Ánh đi học với làm cả ngày nên tối mệt, phim thì khó hiểu nên Ánh ngủ mất, vẫn xinh và đáng yêu.\nKhi về trời mưa nhưng vẫn kéo nhau lên tận Hà Đông ăn trứng vịt lộn."],
+["2022-08-27","Bắt đầu tìm hiểu lại sau 1 số biến cố","Hmm, chỉ là bắt đầu lại thôi, tình yêu nào mà chẳng phải có chút sóng gió thì mới bền chặt được hơn đúng không?"],
+["2022-08-28","Lần đầu đi ăn cùng Ánh","Nhai lâu quá làm Ánh phải chờ :))"],
+["2022-09-09","Sinh nhật Ánh","Buổi chiều có đi hiến máu cùng Ánh, tối tổ chức sinh nhật sớm cho Ánh"],
+["2022-09-16","Hình như đang ở giai đoạn chán dần, có vẻ Ánh đã chán","Qua cảm nhận thấy Ánh đang chán mình dần, không còn nói chuyện nhiều, dần lạnh nhạt và có vẻ như mình đang làm phiền Ánh\nLiệu đây có phải kết thúc ..."],
+["2022-09-17","Ánh đang chịu nhiều áp lực","Ánh đang bị nhiều áp lực nhưng Ánh không muốn kể, Ánh chán Hà Nội"],
+["2022-09-22","Tỏ tình Ánh nhưng tạch","..."],
+["2022-09-25","Xem phim lần 2 với Ánh","Ánh cười nhiều lắm, muốn nắm tay Ánh bước đi nhưng mà ngại, đã là gì của Ánh đâu"],
+["2022-09-27","Dạo này Ánh chịu nhiều áp lực","Ánh phải tìm trọ, áp lực tiền bạc lẫn học hành, Ánh đang mệt"],
+["2022-09-28","Ánh muốn dừng lại","Đã làm Ánh buồn nhiều, nhưng không, mình không muốn buông, có lỗi thì phải sửa, cái gì hỏng thì sửa, chứ đừng vứt đi."],
+["2022-10-01","Hành trình tìm trọ cho Ánh","Lượn khắp mọi ngõ ngách cũng không tìm được, tưởng như tuyệt vọng thì lại may mắn gặp được ông chú vi diệu, quý nhân chỉ đường"],
+["2022-10-03","Chuyển đồ giúp Ánh","Ê hê nay lại được nắm tay Ánh nè =))\nThích cực, muốn nắm mãi cơ :>>"],
+["2022-10-06","Chính thức yêu nhau","Yeee tỏ tình thành công rồi\nVới tôn chỉ không để ai biết trước mình sẽ làm gì =))\nYêu Ánh nhiều lắm"],
+["2022-10-15","Kỷ niệm 15/10/2022",""],
+["2022-10-19","Dẫn em yêu đi ngắm chùa Thầy","Chùa Thầy đẹp tuyệt vời và Ánh cũng thế\nBị lừa cú hơi đau nhưng mà nói chung mọi thứ đều tuyệt vời"],
+["2022-10-20","20/10 cùng Ánh","Vuiii"],
+["2022-10-27","Đưa em yêu đi hết con đường tình yêu Sư phạm","Đến giờ muộn nên nhanh đến giờ về quá\nLần sau dẫn Ánh đi tiếp :))."]
+];
+
+async function migrateLegacyMemories() {
+  if (!currentUser || !currentCoupleId) return;
+  const { data: existing, error } = await supabase.from("stories").select("story_date,title").eq("couple_id", currentCoupleId);
+  if (error) return console.error("Legacy migration read:", error);
+  const keys = new Set((existing || []).map(s => s.story_date + "||" + s.title));
+  const missing = LEGACY_MEMORIES.filter(([d,t]) => !keys.has(d + "||" + t)).map(([story_date,title,content]) => ({couple_id:currentCoupleId,author_id:currentUser.id,story_date,title,content}));
+  if (!missing.length) return;
+  const result = await supabase.from("stories").insert(missing);
+  if (result.error) console.error("Legacy migration insert:", result.error);
+}
+
+
 async function setupRealtime() {
   if (realtimeChannel) {
     await supabase.removeChannel(realtimeChannel);
@@ -57,6 +90,7 @@ async function loadUser() {
 
   updateAuthUI();
   await setupRealtime();
+  if (currentUser && currentCoupleId) await migrateLegacyMemories();
   await loadStories();
 }
 
@@ -143,7 +177,7 @@ async function loadStories() {
       ).join("")}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
       ${s.author_id === currentUser?.id ? `<div class="story-actions">
-        <button class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
+        <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
       </div>` : ""}
     </article>`;
   }).join("");
@@ -165,7 +199,7 @@ function resetStoryDialog() {
 }
 
 async function openEditStory(storyId, stories) {
-  const story = stories.find(s => s.id === storyId);
+  const story = stories.find(s => String(s.id) === String(storyId));
   if (!story || story.author_id !== currentUser?.id) return;
 
   editingStory = story;
@@ -330,14 +364,22 @@ $("#storyForm").addEventListener("submit", async e => {
   } else {
     const storyId = editingStory.id;
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("stories")
       .update({ story_date: storyDate, title, content, updated_at: new Date().toISOString() })
       .eq("id", storyId)
-      .eq("author_id", currentUser.id);
+      .eq("author_id", currentUser.id)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       $("#storyFormError").textContent = error.message;
+      submit.disabled = false;
+      submit.textContent = "Lưu thay đổi ❤️";
+      return;
+    }
+    if (!updated) {
+      $("#storyFormError").textContent = "Không thể cập nhật: tài khoản hiện tại không phải người tạo kỷ niệm này.";
       submit.disabled = false;
       submit.textContent = "Lưu thay đổi ❤️";
       return;
