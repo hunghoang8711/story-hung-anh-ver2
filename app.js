@@ -47,8 +47,12 @@ async function migrateLegacyMemories() {
   const keys = new Set((existing || []).map(s => s.story_date + "||" + s.title));
   const missing = LEGACY_MEMORIES.filter(([d,t]) => !keys.has(d + "||" + t)).map(([story_date,title,content]) => ({couple_id:currentCoupleId,author_id:currentUser.id,story_date,title,content}));
   if (!missing.length) return;
-  const result = await supabase.from("stories").insert(missing);
-  if (result.error) console.error("Legacy migration insert:", result.error);
+  for (const story of missing) {
+    const result = await supabase.from("stories").insert(story);
+    if (result.error) {
+      console.error("Legacy migration insert failed:", story.title, result.error);
+    }
+  }
 }
 
 
