@@ -11,15 +11,17 @@
 <body>
 <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
 <header class="hero"><div class="hero-inner">
-<p class="eyebrow">HUNG × ANH</p><h1>Our Story <span>♥</span></h1>
+<p class="eyebrow">Hưng x Ánh</p><h1>Our Story <span>♥</span></h1>
 <p class="hero-sub">Những ngày bình thường trở thành những kỷ niệm đặc biệt.</p>
 <div class="hero-actions"><button class="btn btn-primary" id="addStoryBtn">＋ Thêm kỷ niệm</button><a class="btn btn-ghost" href="gallery.html">📷 Album ảnh</a><button class="btn btn-ghost" id="authBtn">Đăng nhập</button></div>
 </div></header>
+<aside class="timeline-nav" id="timelineNav" aria-label="Điều hướng mốc thời gian"></aside>
 <main class="container">
 <section class="status-card"><div><strong id="storyCount">0</strong><span> kỷ niệm</span></div><div class="status-note" id="modeText">Đang kết nối…</div></section>
 <section class="timeline" id="timeline" aria-live="polite"></section>
 <div class="empty" id="emptyState"><div class="empty-heart">♡</div><h2>Chưa có kỷ niệm mới</h2><p>Hãy bắt đầu viết lại một ngày mà bạn muốn cả hai cùng nhớ.</p></div>
 </main>
+<dialog id="storyDetailDialog"><div class="detail-modal"><button type="button" class="modal-close" id="closeStoryDetail">×</button><div id="detailContent"></div></div></dialog>
 <dialog id="storyDialog"><form method="post" id="storyForm" class="modal">
 <button type="button" class="modal-close" id="closeDialog">×</button><p class="eyebrow" id="storyDialogEyebrow">NEW MEMORY</p><h2 id="storyDialogTitle">Thêm kỷ niệm</h2>
 <label>Ngày<input id="storyDate" type="date" required></label>
