@@ -656,3 +656,55 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 });
 
 loadUser();
+
+
+/* Romantic interaction: falling hearts + heart burst on click */
+(function initHeartEffects(){
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const snowLayer = document.createElement("div");
+  snowLayer.className = "heart-snow-layer";
+  snowLayer.setAttribute("aria-hidden", "true");
+  document.body.prepend(snowLayer);
+
+  const colors = ["#ff6f91","#ff8fab","#ffb0c2","#ffd1dc"];
+
+  function createSnowHeart(){
+    const heart = document.createElement("span");
+    heart.className = "heart-snow";
+    heart.textContent = "♥";
+    heart.style.left = Math.random() * 100 + "vw";
+    heart.style.fontSize = (8 + Math.random() * 15) + "px";
+    heart.style.setProperty("--drift", (-60 + Math.random() * 120) + "px");
+    heart.style.animationDuration = (8 + Math.random() * 8) + "s";
+    heart.style.animationDelay = (Math.random() * 1.5) + "s";
+    heart.style.color = colors[Math.floor(Math.random() * colors.length)];
+    snowLayer.appendChild(heart);
+    heart.addEventListener("animationend", () => heart.remove(), {once:true});
+  }
+
+  // Keep the background subtle: a few hearts at a time, continuously replenished.
+  for(let i=0;i<14;i++) createSnowHeart();
+  setInterval(createSnowHeart, 900);
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("button,a,input,textarea,select,dialog")) return;
+
+    const count = 5;
+    for(let i=0;i<count;i++){
+      const heart = document.createElement("span");
+      heart.className = "heart-click";
+      heart.textContent = i === 0 ? "♥" : (Math.random() > .35 ? "♥" : "♡");
+      heart.style.left = event.clientX + "px";
+      heart.style.top = event.clientY + "px";
+      heart.style.setProperty("--x", (-55 + Math.random() * 110) + "px");
+      heart.style.setProperty("--y", (-45 - Math.random() * 80) + "px");
+      heart.style.setProperty("--rotate", (-35 + Math.random() * 70) + "deg");
+      heart.style.setProperty("--heart-size", (12 + Math.random() * 13) + "px");
+      heart.style.setProperty("--heart-color", colors[Math.floor(Math.random() * colors.length)]);
+      heart.style.animationDelay = (i * 35) + "ms";
+      document.body.appendChild(heart);
+      heart.addEventListener("animationend", () => heart.remove(), {once:true});
+    }
+  });
+})();
