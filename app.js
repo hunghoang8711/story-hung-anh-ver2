@@ -18,6 +18,8 @@ let currentUser = null;
 let currentCoupleId = null;
 let realtimeChannel = null;
 let editingStory = null;
+let timelineStories = [];
+let timelineImages = new Map();
 
 const LEGACY_MEMORIES = [
 ["2022-07-07","Ngày khởi đầu","Ngày bắt đầu làm quen với Ánh"],
@@ -283,13 +285,18 @@ async function loadStories() {
   $("#storyCount").textContent = stories.length;
   $("#emptyState").hidden = stories.length > 0;
 
+  timelineStories = stories;
+  timelineImages = imagesByStory;
+  renderTimelineNav(stories);
+
   $("#timeline").innerHTML = stories.map(s => {
     const d = new Date(s.story_date + "T00:00:00").toLocaleDateString("vi-VN", {
       day: "2-digit", month: "2-digit", year: "numeric"
     });
     const images = imagesByStory.get(s.id) || [];
 
-    return `<article class="story">
+    const [storyYear, storyMonth] = s.story_date.split("-");
+    return `<article class="story" data-year="${storyYear}" data-month="${storyYear}-${storyMonth}" id="story-${s.id}">
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
@@ -297,15 +304,60 @@ async function loadStories() {
         `<img src="${img.url}" alt="Ảnh kỷ niệm" loading="lazy">`
       ).join("")}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
+      <button type="button" class="story-expand" data-expand-story="${s.id}" aria-label="Mở rộng kỷ niệm">>> </button>
       ${s.author_id === currentUser?.id ? `<div class="story-actions">
         <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
       </div>` : ""}
     </article>`;
   }).join("");
 
+  document.querySelectorAll(".story-expand").forEach(btn => {
+    btn.onclick = () => openStoryDetail(btn.dataset.expandStory);
+  });
+
   document.querySelectorAll(".edit-story-btn").forEach(btn => {
     btn.onclick = () => openEditStory(btn.dataset.id, stories);
   });
+}
+
+function renderTimelineNav(stories) {
+  const nav = $("#timelineNav");
+  if (!nav) return;
+  const groups = new Map();
+  for (const story of stories) {
+    const [year, month] = story.story_date.split("-");
+    if (!groups.has(year)) groups.set(year, new Set());
+    groups.get(year).add(month);
+  }
+  nav.innerHTML = [...groups.entries()].map(([year, months]) => `
+    <div class="nav-year">
+      <button type="button" class="year-link" data-nav-year="${year}">${year}</button>
+      <div class="month-list">
+        ${[...months].sort().map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${Number(month)}月</button>`).join("")}
+      </div>
+    </div>
+  `).join("");
+  nav.querySelectorAll("[data-nav-year]").forEach(btn => btn.onclick = () => {
+    document.querySelector(`.story[data-year="${btn.dataset.navYear}"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  nav.querySelectorAll("[data-nav-month]").forEach(btn => btn.onclick = () => {
+    document.querySelector(`.story[data-month="${btn.dataset.navMonth}"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+}
+
+async function openStoryDetail(storyId) {
+  const story = timelineStories.find(s => String(s.id) === String(storyId));
+  if (!story) return;
+  const images = timelineImages.get(story.id) || [];
+  const d = new Date(story.story_date + "T00:00:00").toLocaleDateString("vi-VN", {day:"2-digit",month:"2-digit",year:"numeric"});
+  $("#detailContent").innerHTML = `
+    <p class="eyebrow">MEMORY</p>
+    <div class="detail-date">${d}</div>
+    <h2>${esc(story.title)}</h2>
+    <p class="detail-text">${esc(story.content).replace(/\\n/g,"<br>")}</p>
+    ${images.length ? `<div class="detail-gallery">${images.map((img,i) => `<figure><img src="${img.url}" alt="Ảnh kỷ niệm ${i+1}" loading="lazy"><figcaption>Ảnh ${i+1}</figcaption></figure>`).join("")}</div>` : "<p class='muted'>Kỷ niệm này chưa có ảnh.</p>"}
+  `;
+  $("#storyDetailDialog").showModal();
 }
 
 function resetStoryDialog() {
@@ -387,6 +439,7 @@ $("#closeDialog").onclick = () => {
 };
 
 $("#closeAuth").onclick = () => $("#authDialog").close();
+$("#closeStoryDetail").onclick = () => $("#storyDetailDialog").close();
 
 $("#authForm").addEventListener("submit", async e => {
   e.preventDefault();
