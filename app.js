@@ -231,9 +231,7 @@ async function loadUser() {
 function updateAuthUI() {
   $("#authBtn").textContent = currentUser ? "Đăng xuất" : "Đăng nhập";
   $("#addStoryBtn").disabled = !currentUser;
-  $("#modeText").textContent = currentUser
-    ? "Đã đăng nhập: " + (currentUser.email || "")
-    : "Chế độ xem — cần đăng nhập để thêm";
+  $("#modeText").textContent = "Album riêng của Hưng × Ánh";
 }
 
 async function getStoryImages(storyIds) {
