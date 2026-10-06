@@ -71,6 +71,9 @@ async function loadStories() {
   const imageRows = stories.length ? ((await supabase.from("story_images").select("story_id, storage_path, sort_order").in("story_id", stories.map(s => s.id)).order("sort_order")).data || []) : [];
   const imagesByStory = new Map();
   for (const row of imageRows) {
+    const signed = await supabase.storage.from(IMAGE_BUCKET).createSignedUrl(row.storage_path, 3600);
+    if (signed.error) continue;
+    row.url = signed.data.signedUrl;
     if (!imagesByStory.has(row.story_id)) imagesByStory.set(row.story_id, []);
     imagesByStory.get(row.story_id).push(row);
   }
@@ -85,7 +88,7 @@ async function loadStories() {
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
-      ${imagesByStory.has(s.id) ? `<div class="story-images">${imagesByStory.get(s.id).map(img => `<img src="${supabase.storage.from(IMAGE_BUCKET).getPublicUrl(img.storage_path).data.publicUrl}" alt="Ảnh kỷ niệm" loading="lazy">`).join("")}</div>` : ""}
+      ${imagesByStory.has(s.id) ? `<div class="story-images">${imagesByStory.get(s.id).map(img => `<img src="${img.url}" alt="Ảnh kỷ niệm" loading="lazy">`).join("")}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}</div>
     </article>`;
   }).join("");
