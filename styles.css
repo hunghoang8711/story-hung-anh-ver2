@@ -412,3 +412,43 @@ input[type=file]{padding:.7rem}
     background:#f5291a;
   }
 }
+
+
+/* FINAL: exact spine/marker alignment for the current story geometry.
+   The old project uses a different card transform, so its raw -30px marker
+   offset cannot be copied directly. Here the marker center is mathematically
+   placed on the same 50% axis as the 2px spine. */
+@media (min-width:701px){
+  .timeline:before{
+    left:50%;
+    top:0;
+    bottom:0;
+    width:2px;
+    transform:translateX(-50%);
+    background:#e42d20;
+    box-shadow:none;
+  }
+
+  .story:after{
+    width:20px;
+    height:20px;
+    top:0;
+    right:-28px;
+    left:auto;
+    transform:none;
+    border:0;
+    background:#ff6358;
+    border-radius:50%;
+    box-shadow:none;
+  }
+
+  .story:nth-child(even):after{
+    left:-48px;
+    right:auto;
+    transform:none;
+  }
+
+  .story:hover:after{
+    background:#f5291a;
+  }
+}
