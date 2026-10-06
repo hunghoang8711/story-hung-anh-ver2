@@ -658,53 +658,115 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
 loadUser();
 
 
-/* Romantic interaction: falling hearts + heart burst on click */
-(function initHeartEffects(){
+/* Romantic effects 1-7: heart snow, click burst, cursor glow/trail, story focus, marker heartbeat, reveal */
+(function initRomanticEffects(){
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  const snowLayer = document.createElement("div");
-  snowLayer.className = "heart-snow-layer";
-  snowLayer.setAttribute("aria-hidden", "true");
+  const colors=["#ff6f91","#ff8fab","#ffb0c2","#ffd1dc","#f45b78"];
+  const snowLayer=document.createElement("div");
+  snowLayer.className="heart-snow-layer";
+  snowLayer.setAttribute("aria-hidden","true");
   document.body.prepend(snowLayer);
 
-  const colors = ["#ff6f91","#ff8fab","#ffb0c2","#ffd1dc"];
-
-  function createSnowHeart(){
-    const heart = document.createElement("span");
-    heart.className = "heart-snow";
-    heart.textContent = "♥";
-    heart.style.left = Math.random() * 100 + "vw";
-    heart.style.fontSize = (8 + Math.random() * 15) + "px";
-    heart.style.setProperty("--drift", (-60 + Math.random() * 120) + "px");
-    heart.style.animationDuration = (8 + Math.random() * 8) + "s";
-    heart.style.animationDelay = (Math.random() * 1.5) + "s";
-    heart.style.color = colors[Math.floor(Math.random() * colors.length)];
+  // 1. Three-depth heart snowfall with gentle wind/drift.
+  function createSnowHeart(initial=false){
+    const heart=document.createElement("span");
+    const depth=Math.random();
+    heart.className="heart-snow "+(depth<.28?"depth-back":depth<.78?"depth-mid":"depth-front");
+    heart.textContent=Math.random()>.22?"♥":"♡";
+    heart.style.left=Math.random()*100+"vw";
+    const size=depth<.28?7+Math.random()*7:depth<.78?9+Math.random()*10:12+Math.random()*14;
+    heart.style.fontSize=size+"px";
+    heart.style.setProperty("--drift",(-110+Math.random()*220)+"px");
+    heart.style.setProperty("--snow-opacity",(0.22+depth*.48).toFixed(2));
+    heart.style.animationDuration=(depth<.28?13+Math.random()*7:depth<.78?10+Math.random()*7:8+Math.random()*7)+"s";
+    heart.style.animationDelay=initial?Math.random()*6+"s":"0s";
+    heart.style.color=colors[Math.floor(Math.random()*colors.length)];
     snowLayer.appendChild(heart);
-    heart.addEventListener("animationend", () => heart.remove(), {once:true});
+    heart.addEventListener("animationend",()=>heart.remove(),{once:true});
   }
+  for(let i=0;i<22;i++) createSnowHeart(true);
+  setInterval(()=>createSnowHeart(false),650);
 
-  // Keep the background subtle: a few hearts at a time, continuously replenished.
-  for(let i=0;i<14;i++) createSnowHeart();
-  setInterval(createSnowHeart, 900);
-
-  document.addEventListener("click", (event) => {
-    if (event.target.closest("button,a,input,textarea,select,dialog")) return;
-
-    const count = 5;
-    for(let i=0;i<count;i++){
-      const heart = document.createElement("span");
-      heart.className = "heart-click";
-      heart.textContent = i === 0 ? "♥" : (Math.random() > .35 ? "♥" : "♡");
-      heart.style.left = event.clientX + "px";
-      heart.style.top = event.clientY + "px";
-      heart.style.setProperty("--x", (-55 + Math.random() * 110) + "px");
-      heart.style.setProperty("--y", (-45 - Math.random() * 80) + "px");
-      heart.style.setProperty("--rotate", (-35 + Math.random() * 70) + "deg");
-      heart.style.setProperty("--heart-size", (12 + Math.random() * 13) + "px");
-      heart.style.setProperty("--heart-color", colors[Math.floor(Math.random() * colors.length)]);
-      heart.style.animationDelay = (i * 35) + "ms";
+  // 2. Click = a small romantic burst.
+  document.addEventListener("click",(event)=>{
+    if(event.target.closest("button,a,input,textarea,select,dialog")) return;
+    for(let i=0;i<8;i++){
+      const heart=document.createElement("span");
+      heart.className="heart-click";
+      heart.textContent=i===0?"♥":(Math.random()>.35?"♥":"♡");
+      heart.style.left=event.clientX+"px";
+      heart.style.top=event.clientY+"px";
+      heart.style.setProperty("--x",(-75+Math.random()*150)+"px");
+      heart.style.setProperty("--y",(-55-Math.random()*105)+"px");
+      heart.style.setProperty("--rotate",(-55+Math.random()*110)+"deg");
+      heart.style.setProperty("--scale",(0.7+Math.random()*.8).toFixed(2));
+      heart.style.setProperty("--heart-size",(11+Math.random()*16)+"px");
+      heart.style.setProperty("--heart-color",colors[Math.floor(Math.random()*colors.length)]);
+      heart.style.animationDelay=(i*24)+"ms";
       document.body.appendChild(heart);
-      heart.addEventListener("animationend", () => heart.remove(), {once:true});
+      heart.addEventListener("animationend",()=>heart.remove(),{once:true});
     }
   });
+
+  // 3 + 4. Cursor trail and soft heart glow (desktop/pointer only).
+  const finePointer=window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+  if(finePointer){
+    const glow=document.createElement("div");
+    glow.className="cursor-heart-glow";
+    glow.setAttribute("aria-hidden","true");
+    document.body.appendChild(glow);
+    let lastX=-999,lastY=-999,lastTrail=0;
+    document.addEventListener("pointermove",(event)=>{
+      glow.style.left=event.clientX+"px";
+      glow.style.top=event.clientY+"px";
+      document.body.classList.add("cursor-active");
+      const now=performance.now();
+      const dx=event.clientX-lastX,dy=event.clientY-lastY;
+      if(now-lastTrail>55 && Math.hypot(dx,dy)>8){
+        const p=document.createElement("span");
+        p.className="cursor-heart";
+        p.textContent=Math.random()>.2?"♥":"♡";
+        p.style.left=event.clientX+"px";
+        p.style.top=event.clientY+"px";
+        p.style.setProperty("--cx",(-10+Math.random()*20)+"px");
+        p.style.setProperty("--cy",(8+Math.random()*22)+"px");
+        p.style.setProperty("--cursor-size",(7+Math.random()*7)+"px");
+        p.style.setProperty("--cursor-color",colors[Math.floor(Math.random()*colors.length)]);
+        document.body.appendChild(p);
+        p.addEventListener("animationend",()=>p.remove(),{once:true});
+        lastTrail=now;
+      }
+      lastX=event.clientX;lastY=event.clientY;
+    },{passive:true});
+    document.addEventListener("pointerleave",()=>document.body.classList.remove("cursor-active"));
+  }
+
+  // 5. Story focus + marker pop when a memory is clicked.
+  document.addEventListener("click",(event)=>{
+    const story=event.target.closest(".story");
+    if(!story) return;
+    document.querySelectorAll(".story.effect-selected").forEach(el=>el.classList.remove("effect-selected"));
+    story.classList.add("effect-selected","marker-pop");
+    setTimeout(()=>story.classList.remove("marker-pop"),700);
+  });
+
+  // 6 + 7. Heartbeat markers and reveal cards as they enter the viewport.
+  const stories=document.querySelectorAll(".story");
+  if("IntersectionObserver" in window){
+    const observer=new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting) return;
+        entry.target.classList.add("revealed");
+        if(entry.intersectionRatio>.2) entry.target.classList.add("marker-pop");
+        observer.unobserve(entry.target);
+      });
+    },{threshold:[0,.2,.45],rootMargin:"0px 0px -8% 0px"});
+    stories.forEach((story)=>{
+      story.classList.add("reveal-on-scroll");
+      observer.observe(story);
+    });
+  }else{
+    stories.forEach(story=>story.classList.add("revealed"));
+  }
 })();
