@@ -298,14 +298,14 @@ async function loadStories() {
   timelineImages = imagesByStory;
   renderTimelineNav(stories);
 
-  $("#timeline").innerHTML = stories.map(s => {
+  $("#timeline").innerHTML = `<ul>${stories.map(s => {
     const d = new Date(s.story_date + "T00:00:00").toLocaleDateString("vi-VN", {
       day: "2-digit", month: "2-digit", year: "numeric"
     });
     const images = imagesByStory.get(s.id) || [];
 
     const [storyYear, storyMonth] = s.story_date.split("-");
-    return `<article class="story" data-year="${storyYear}" data-month="${storyYear}-${storyMonth}" id="story-${s.id}">
+    return `<li class="story" data-year="${storyYear}" data-month="${storyYear}-${storyMonth}" id="story-${s.id}">
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
@@ -315,8 +315,8 @@ async function loadStories() {
       ${s.author_id === currentUser?.id ? `<div class="story-actions">
         <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
       </div>` : ""}
-    </article>`;
-  }).join("");
+    </li>`;
+  }).join("")}</ul>`;
 
   document.querySelectorAll(".story-expand").forEach(btn => {
     btn.onclick = () => openStoryDetail(btn.dataset.expandStory);
