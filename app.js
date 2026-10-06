@@ -340,7 +340,7 @@ function renderTimelineNav(stories) {
     <div class="nav-year">
       <button type="button" class="year-link" data-nav-year="${year}">${year}</button>
       <div class="month-list">
-        ${[...months].sort().map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${["January","February","March","April","May","June","July","August","September","October","November","December"][Number(month)-1]} -T${Number(month)}</button>`).join("")}
+        ${[...months].sort((a, b) => Number(b) - Number(a)).map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${["January","February","March","April","May","June","July","August","September","October","November","December"][Number(month)-1]} -T${Number(month)}</button>`).join("")}
       </div>
     </div>
   `).join("");
