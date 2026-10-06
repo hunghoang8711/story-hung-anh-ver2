@@ -52,9 +52,10 @@ on conflict do nothing;
 -- 2. Stories
 -- =========================================================
 
+alter table public.stories add column if not exists couple_id uuid references public.couples(id) on delete cascade;
+
 create table if not exists public.stories (
   id uuid primary key default gen_random_uuid(),
-  couple_id uuid references public.couples(id) on delete cascade,
   author_id uuid not null references auth.users(id) on delete cascade,
   story_date date not null default current_date,
   title text not null check (char_length(title) between 1 and 120),
