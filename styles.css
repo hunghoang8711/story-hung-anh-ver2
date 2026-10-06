@@ -86,3 +86,8 @@ input[type=file]{padding:.7rem}
 .story-expand.has-images{color:#ff4964;background:rgba(229,45,72,.18);font-weight:800}
 .story:not(:has(.story-images)) .story-expand{opacity:.32}
 @media(max-width:700px){.timeline:before{left:10px;transform:none}.timeline:after{left:10px;top:-58px;transform:translateX(-50%)}.story:after,.story:nth-child(even):after{left:-31.5px;right:auto;top:25px}.story:nth-child(odd) .story-expand{right:0;left:auto;margin:0}.story:nth-child(even) .story-expand{left:0;right:auto;margin:0}}
+
+/* Arrow buttons sit directly under the corresponding card, away from the center line */
+.story:nth-child(odd) .story-expand{left:0;right:auto;margin-left:0;margin-right:0}
+.story:nth-child(even) .story-expand{right:0;left:auto;margin-left:0;margin-right:0}
+@media(max-width:700px){.story:nth-child(odd) .story-expand{left:auto;right:0;margin:0}.story:nth-child(even) .story-expand{left:auto;right:0;margin:0}}
