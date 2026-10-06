@@ -302,7 +302,7 @@ async function loadStories() {
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
       ${images.length ? `<div class="story-images">${images.slice(0,4).map(img => `<img src="${img.url}" alt="Ảnh kỷ niệm" loading="lazy">`).join("")}${images.length > 4 ? `<span class="image-more-badge">+${images.length - 4}</span>` : ""}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
-      <button type="button" class="story-expand" data-expand-story="${s.id}" aria-label="Mở rộng kỷ niệm">>> </button>
+      <button type="button" class="story-expand ${images.length ? "has-images" : ""}" data-expand-story="${s.id}" aria-label="Mở ảnh kỷ niệm">${stories.indexOf(s) % 2 === 0 ? "<<<" : ">>>"}</button>
       ${s.author_id === currentUser?.id ? `<div class="story-actions">
         <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
       </div>` : ""}
