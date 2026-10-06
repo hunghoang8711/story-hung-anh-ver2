@@ -300,9 +300,7 @@ async function loadStories() {
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
-      ${images.length ? `<div class="story-images">${images.map(img =>
-        `<img src="${img.url}" alt="Ảnh kỷ niệm" loading="lazy">`
-      ).join("")}</div>` : ""}
+      ${images.length ? `<div class="story-images">${images.slice(0,4).map(img => `<img src="${img.url}" alt="Ảnh kỷ niệm" loading="lazy">`).join("")}${images.length > 4 ? `<span class="image-more-badge">+${images.length - 4}</span>` : ""}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
       <button type="button" class="story-expand" data-expand-story="${s.id}" aria-label="Mở rộng kỷ niệm">>> </button>
       ${s.author_id === currentUser?.id ? `<div class="story-actions">
@@ -333,7 +331,7 @@ function renderTimelineNav(stories) {
     <div class="nav-year">
       <button type="button" class="year-link" data-nav-year="${year}">${year}</button>
       <div class="month-list">
-        ${[...months].sort().map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${["January","February","March","April","May","June","July","August","September","October","November","December"][Number(month)-1]} - T${Number(month)}</button>`).join("")}
+        ${[...months].sort().map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${["January","February","March","April","May","June","July","August","September","October","November","December"][Number(month)-1]} -T${Number(month)}</button>`).join("")}
       </div>
     </div>
   `).join("");
@@ -534,7 +532,14 @@ $("#storyForm").addEventListener("submit", async e => {
       return;
     }
 
-    await uploadNewImages(data.id, files);
+    const imageErrors = await uploadNewImages(data.id, files);
+    if (imageErrors.length) {
+      $("#storyFormError").textContent = "Kỷ niệm đã lưu nhưng ảnh chưa lưu được: " + imageErrors.join(" | ");
+      submit.disabled = false;
+      submit.textContent = "Lưu kỷ niệm ❤️";
+      await loadStories();
+      return;
+    }
   } else {
     const storyId = editingStory.id;
 
@@ -571,7 +576,14 @@ $("#storyForm").addEventListener("submit", async e => {
       if (rowResult.error) console.error(rowResult.error);
     }
 
-    await uploadNewImages(storyId, files);
+    const imageErrors = await uploadNewImages(storyId, files);
+    if (imageErrors.length) {
+      $("#storyFormError").textContent = "Một số ảnh chưa lưu được: " + imageErrors.join(" | ");
+      submit.disabled = false;
+      submit.textContent = "Lưu thay đổi ❤️";
+      await loadStories();
+      return;
+    }
   }
 
   submit.disabled = false;
@@ -582,18 +594,21 @@ $("#storyForm").addEventListener("submit", async e => {
 });
 
 async function uploadNewImages(storyId, files) {
+  const errors = [];
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const ext = (file.name.split(".").pop() || "jpg")
-      .toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-    const path = `${currentCoupleId}/${storyId}/${crypto.randomUUID()}.${ext}`;
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = currentCoupleId + "/" + storyId + "/" + crypto.randomUUID() + "." + ext;
 
     const upload = await supabase.storage.from(IMAGE_BUCKET).upload(path, file, {
-      cacheControl: "31536000", upsert: false, contentType: file.type
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: file.type || "application/octet-stream"
     });
 
     if (upload.error) {
-      console.error(upload.error);
+      console.error("Image upload failed:", upload.error);
+      errors.push(file.name + ": " + (upload.error.message || "Không thể tải ảnh lên Storage"));
       continue;
     }
 
@@ -601,14 +616,16 @@ async function uploadNewImages(storyId, files) {
       story_id: storyId,
       couple_id: currentCoupleId,
       storage_path: path,
-      sort_order: Date.now() + i
+      sort_order: i
     });
 
     if (imageInsert.error) {
-      console.error(imageInsert.error);
+      console.error("Image record insert failed:", imageInsert.error);
+      errors.push(file.name + ": " + (imageInsert.error.message || "Không thể lưu ảnh vào cơ sở dữ liệu"));
       await supabase.storage.from(IMAGE_BUCKET).remove([path]);
     }
   }
+  return errors;
 }
 
 supabase.auth.onAuthStateChange(async (_event, session) => {
