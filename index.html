@@ -13,7 +13,7 @@
 <header class="hero"><div class="hero-inner">
 <p class="eyebrow">HUNG × ANH</p><h1>Our Story <span>♥</span></h1>
 <p class="hero-sub">Những ngày bình thường trở thành những kỷ niệm đặc biệt.</p>
-<div class="hero-actions"><button class="btn btn-primary" id="addStoryBtn">＋ Thêm kỷ niệm</button><button class="btn btn-ghost" id="authBtn">Đăng nhập</button></div>
+<div class="hero-actions"><button class="btn btn-primary" id="addStoryBtn">＋ Thêm kỷ niệm</button><a class="btn btn-ghost" href="gallery.html">📷 Album ảnh</a><button class="btn btn-ghost" id="authBtn">Đăng nhập</button></div>
 </div></header>
 <main class="container">
 <section class="status-card"><div><strong id="storyCount">0</strong><span> kỷ niệm</span></div><div class="status-note" id="modeText">Đang kết nối…</div></section>
@@ -21,14 +21,15 @@
 <div class="empty" id="emptyState"><div class="empty-heart">♡</div><h2>Chưa có kỷ niệm mới</h2><p>Hãy bắt đầu viết lại một ngày mà bạn muốn cả hai cùng nhớ.</p></div>
 </main>
 <dialog id="storyDialog"><form method="dialog" id="storyForm" class="modal">
-<button type="button" class="modal-close" id="closeDialog">×</button><p class="eyebrow">NEW MEMORY</p><h2>Thêm kỷ niệm</h2>
+<button type="button" class="modal-close" id="closeDialog">×</button><p class="eyebrow" id="storyDialogEyebrow">NEW MEMORY</p><h2 id="storyDialogTitle">Thêm kỷ niệm</h2>
 <label>Ngày<input id="storyDate" type="date" required></label>
 <label>Tiêu đề<input id="storyTitle" maxlength="120" placeholder="Ví dụ: Một ngày thật vui" required></label>
 <label>Nội dung<textarea id="storyContent" rows="7" maxlength="10000" placeholder="Viết điều bạn muốn lưu lại..." required></textarea></label>
 <label>Ảnh kỷ niệm <span class="muted">(có thể chọn nhiều ảnh)</span><input id="storyImages" type="file" accept="image/*" multiple></label>
+<div id="existingImages" class="image-preview existing-images" aria-live="polite"></div>
 <div id="imagePreview" class="image-preview" aria-live="polite"></div>
 <p id="storyFormError" class="form-error"></p>
-<button class="btn btn-primary full" type="submit">Lưu kỷ niệm ❤️</button>
+<button class="btn btn-primary full" id="storySubmitBtn" type="submit">Lưu kỷ niệm ❤️</button>
 </form></dialog>
 <dialog id="authDialog"><form method="dialog" class="modal" id="authForm">
 <button type="button" class="modal-close" id="closeAuth">×</button><p class="eyebrow">PRIVATE STORY</p><h2>Tài khoản</h2>
