@@ -35,7 +35,7 @@ async function loadUser() {
 function updateAuthUI() {
   $("#authBtn").textContent = currentUser ? "Đăng xuất" : "Đăng nhập";
   $("#modeText").textContent = currentUser
-    ? "Album riêng của Hùng × Anh"
+    ? "Album riêng của Hùng × Ánh"
     : "Cần đăng nhập để xem ảnh";
 }
 
