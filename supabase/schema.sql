@@ -1,7 +1,7 @@
 create extension if not exists pgcrypto;
 
 -- =========================================================
--- 1. Couple: exactly two authenticated users
+-- 1. Couple
 -- =========================================================
 
 create table if not exists public.couples (
@@ -35,14 +35,17 @@ $$;
 revoke all on function public.is_couple_member(uuid) from public;
 grant execute on function public.is_couple_member(uuid) to authenticated;
 
--- Members can only see their own membership row.
 alter table public.couple_members enable row level security;
-drop policy if exists "users can read own couple membership" on public.couple_members;
+
+drop policy if exists "users can read own couple membership"
+on public.couple_members;
+
 create policy "users can read own couple membership"
-on public.couple_members for select to authenticated
+on public.couple_members
+for select
+to authenticated
 using (user_id = auth.uid());
 
--- Create the couple and attach the two accounts created in Supabase Auth.
 insert into public.couples (name)
 select 'HUNG × ANH'
 where not exists (select 1 from public.couples);
@@ -59,10 +62,9 @@ on conflict do nothing;
 -- 2. Stories
 -- =========================================================
 
-alter table public.stories add column if not exists couple_id uuid references public.couples(id) on delete cascade;
-
 create table if not exists public.stories (
   id uuid primary key default gen_random_uuid(),
+  couple_id uuid references public.couples(id) on delete cascade,
   author_id uuid not null references auth.users(id) on delete cascade,
   story_date date not null default current_date,
   title text not null check (char_length(title) between 1 and 120),
@@ -71,34 +73,48 @@ create table if not exists public.stories (
   updated_at timestamptz not null default now()
 );
 
--- Existing rows, if any, are assigned to the first couple.
+alter table public.stories
+add column if not exists couple_id uuid
+references public.couples(id)
+on delete cascade;
+
 update public.stories
-set couple_id = (select id from public.couples order by created_at limit 1)
+set couple_id = (
+  select id from public.couples order by created_at limit 1
+)
 where couple_id is null;
 
 alter table public.stories
-  alter column couple_id set not null;
+alter column couple_id set not null;
 
 alter table public.stories enable row level security;
 
 drop policy if exists "authenticated users can read stories" on public.stories;
 drop policy if exists "authenticated users can create stories" on public.stories;
+drop policy if exists "couple members can read stories" on public.stories;
+drop policy if exists "couple members can create stories" on public.stories;
 drop policy if exists "authors can update their stories" on public.stories;
 drop policy if exists "authors can delete their stories" on public.stories;
 
 create policy "couple members can read stories"
-on public.stories for select to authenticated
+on public.stories
+for select
+to authenticated
 using (public.is_couple_member(couple_id));
 
 create policy "couple members can create stories"
-on public.stories for insert to authenticated
+on public.stories
+for insert
+to authenticated
 with check (
   auth.uid() = author_id
   and public.is_couple_member(couple_id)
 );
 
 create policy "authors can update their stories"
-on public.stories for update to authenticated
+on public.stories
+for update
+to authenticated
 using (
   auth.uid() = author_id
   and public.is_couple_member(couple_id)
@@ -109,7 +125,9 @@ with check (
 );
 
 create policy "authors can delete their stories"
-on public.stories for delete to authenticated
+on public.stories
+for delete
+to authenticated
 using (
   auth.uid() = author_id
   and public.is_couple_member(couple_id)
@@ -138,19 +156,33 @@ drop policy if exists "couple members can create story images" on public.story_i
 drop policy if exists "couple members can delete story images" on public.story_images;
 
 create policy "couple members can read story images"
-on public.story_images for select to authenticated
+on public.story_images
+for select
+to authenticated
 using (public.is_couple_member(couple_id));
 
 create policy "couple members can create story images"
-on public.story_images for insert to authenticated
-with check (public.is_couple_member(couple_id));
+on public.story_images
+for insert
+to authenticated
+with check (
+  public.is_couple_member(couple_id)
+  and exists (
+    select 1
+    from public.stories s
+    where s.id = story_id
+      and s.couple_id = couple_id
+  )
+);
 
 create policy "couple members can delete story images"
-on public.story_images for delete to authenticated
+on public.story_images
+for delete
+to authenticated
 using (public.is_couple_member(couple_id));
 
 -- =========================================================
--- 4. Private Supabase Storage bucket
+-- 4. Private Storage bucket
 -- =========================================================
 
 insert into storage.buckets (id, name, public)
@@ -162,21 +194,27 @@ drop policy if exists "couple members can read story images" on storage.objects;
 drop policy if exists "couple members can delete story images" on storage.objects;
 
 create policy "couple members can upload story images"
-on storage.objects for insert to authenticated
+on storage.objects
+for insert
+to authenticated
 with check (
   bucket_id = 'story-images'
   and public.is_couple_member((storage.foldername(name))[1]::uuid)
 );
 
 create policy "couple members can read story images"
-on storage.objects for select to authenticated
+on storage.objects
+for select
+to authenticated
 using (
   bucket_id = 'story-images'
   and public.is_couple_member((storage.foldername(name))[1]::uuid)
 );
 
 create policy "couple members can delete story images"
-on storage.objects for delete to authenticated
+on storage.objects
+for delete
+to authenticated
 using (
   bucket_id = 'story-images'
   and public.is_couple_member((storage.foldername(name))[1]::uuid)
@@ -185,7 +223,6 @@ using (
 -- =========================================================
 -- 5. Realtime
 -- =========================================================
--- Run this once in Supabase SQL Editor if stories is not already
--- present in the supabase_realtime publication:
--- alter publication supabase_realtime add table public.stories;
-
+-- Enable public.stories in Supabase Dashboard:
+-- Database > Publications/Replication > supabase_realtime > stories
+-- The frontend is already configured to subscribe to story changes.
