@@ -52,6 +52,120 @@ async function migrateLegacyMemories() {
 }
 
 
+const LEGACY_IMAGES = [
+  ["images/330191.jpg","330191.jpg"],
+  ["images/330289.jpg","330289.jpg"],
+  ["images/330289.png","330289.png"],
+  ["images/330300.jpg","330300.jpg"],
+  ["images/418564.jpg","418564.jpg"],
+  ["images/938d09d85f343932c54119bce8e0913d.jpg","938d09d85f343932c54119bce8e0913d.jpg"],
+  ["images/about.jpg","about.jpg"],
+  ["images/anh-01.jpg","anh-01.jpg"],
+  ["images/banner.jpg","banner.jpg"],
+  ["images/blog01.jpg","blog01.jpg"],
+  ["images/logoUet.jpg","logoUet.jpg"],
+  ["images/logouet.png","logouet.png"],
+  ["images/london.png","london.png"],
+  ["images/nature01.jpg","nature01.jpg"],
+  ["images/picture-sky.jpg","picture-sky.jpg"],
+  ["images/picture-sky.png","picture-sky.png"],
+  ["images/picture-sky1.png","picture-sky1.png"],
+  ["images/picture02.jpg","picture02.jpg"],
+  ["images/picture02.png","picture02.png"],
+  ["images/picture03.jpg","picture03.jpg"],
+  ["images/picture03.png","picture03.png"],
+  ["images/user01.jpg","user01.jpg"],
+  ["images/user02.jpg","user02.jpg"]
+];
+
+async function findOrCreateLegacyStory() {
+  const title = "Ảnh lưu trữ từ website cũ";
+  const { data: found, error } = await supabase.from("stories")
+    .select("id").eq("couple_id", currentCoupleId).eq("title", title).limit(1).maybeSingle();
+  if (error) throw error;
+  if (found) return found.id;
+
+  const { data, error: createError } = await supabase.from("stories").insert({
+    couple_id: currentCoupleId,
+    author_id: currentUser.id,
+    story_date: "2022-07-07",
+    title,
+    content: "Các hình ảnh được lưu từ website Love Story cũ. Những ảnh có mốc xác định sẽ được ghép vào đúng kỷ niệm; các ảnh không có thông tin ngày tháng được giữ trong mốc lưu trữ này."
+  }).select("id").single();
+  if (createError) throw createError;
+  return data.id;
+}
+
+async function migrateLegacyImages() {
+  if (!currentUser || !currentCoupleId) return;
+
+  const doneKey = "legacy-images-migrated-" + currentCoupleId;
+  if (localStorage.getItem(doneKey) === "1") return;
+
+  const archiveStoryId = await findOrCreateLegacyStory();
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("story_images")
+    .select("storage_path, story_id")
+    .eq("couple_id", currentCoupleId);
+  if (existingError) throw existingError;
+
+  const existingNames = new Set((existingRows || []).map(r => r.storage_path.split("/").pop()));
+
+  // This is the only image explicitly associated with a dated milestone in love_story.html.
+  const datedImageStory = new Map([
+    ["anh-01.jpg", await getStoryIdByDateAndTitle("2022-10-06", "Chính thức yêu nhau")]
+  ]);
+
+  for (const [sourcePath, fileName] of LEGACY_IMAGES) {
+    if (existingNames.has(fileName)) continue;
+
+    const response = await fetch("https://raw.githubusercontent.com/hunghoang8711/story.hung.anh/main/" + sourcePath);
+    if (!response.ok) {
+      console.warn("Cannot download legacy image:", sourcePath, response.status);
+      continue;
+    }
+
+    const blob = await response.blob();
+    const ext = (fileName.split(".").pop() || "jpg").toLowerCase();
+    const targetStoryId = datedImageStory.get(fileName) || archiveStoryId;
+    const storagePath = currentCoupleId + "/" + targetStoryId + "/legacy-" + fileName;
+
+    const upload = await supabase.storage.from(IMAGE_BUCKET).upload(storagePath, blob, {
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: blob.type || ("image/" + ext)
+    });
+
+    if (upload.error) {
+      console.warn("Cannot upload legacy image:", fileName, upload.error);
+      continue;
+    }
+
+    const row = await supabase.from("story_images").insert({
+      story_id: targetStoryId,
+      couple_id: currentCoupleId,
+      storage_path: storagePath,
+      sort_order: Date.now()
+    });
+
+    if (row.error) {
+      console.warn("Cannot register legacy image:", fileName, row.error);
+      await supabase.storage.from(IMAGE_BUCKET).remove([storagePath]);
+    }
+  }
+
+  localStorage.setItem(doneKey, "1");
+}
+
+async function getStoryIdByDateAndTitle(date, title) {
+  const { data, error } = await supabase.from("stories")
+    .select("id").eq("couple_id", currentCoupleId)
+    .eq("story_date", date).eq("title", title).limit(1).maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
+
 async function setupRealtime() {
   if (realtimeChannel) {
     await supabase.removeChannel(realtimeChannel);
@@ -90,7 +204,7 @@ async function loadUser() {
 
   updateAuthUI();
   await setupRealtime();
-  if (currentUser && currentCoupleId) await migrateLegacyMemories();
+  if (currentUser && currentCoupleId) {\n    await migrateLegacyMemories();\n    try { await migrateLegacyImages(); } catch (error) { console.error("Legacy image migration:", error); }\n  }
   await loadStories();
 }
 
