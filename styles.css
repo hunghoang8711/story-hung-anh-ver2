@@ -373,3 +373,42 @@ input[type=file]{padding:.7rem}
     transform:none;
   }
 }
+
+/* Use the original project's timeline spine/marker geometry.
+   Reference: story.hung.anh/story.css */
+@media (min-width:701px){
+  .timeline:before{
+    content:'';
+    position:absolute;
+    height:100%;
+    width:2px;
+    left:50%;
+    top:0;
+    bottom:auto;
+    transform:translateX(-50%);
+    background:#e42d20;
+    box-shadow:none;
+  }
+  .story:after{
+    content:'';
+    position:absolute;
+    width:20px;
+    height:20px;
+    top:0;
+    right:-30px;
+    left:auto;
+    transform:translate(50%,-50%);
+    border:0;
+    background:#ff6358;
+    border-radius:50%;
+    box-shadow:none;
+  }
+  .story:nth-child(even):after{
+    left:-30px;
+    right:auto;
+    transform:translate(-50%,-50%);
+  }
+  .story:hover:after{
+    background:#f5291a;
+  }
+}
