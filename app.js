@@ -34,7 +34,7 @@ const LEGACY_MEMORIES = [
 ["2022-10-01","Hành trình tìm trọ cho Ánh","Lượn khắp mọi ngõ ngách cũng không tìm được, tưởng như tuyệt vọng thì lại may mắn gặp được ông chú vi diệu, quý nhân chỉ đường"],
 ["2022-10-03","Chuyển đồ giúp Ánh","Ê hê nay lại được nắm tay Ánh nè =))\nThích cực, muốn nắm mãi cơ :>>"],
 ["2022-10-06","Chính thức yêu nhau","Yeee tỏ tình thành công rồi\nVới tôn chỉ không để ai biết trước mình sẽ làm gì =))\nYêu Ánh nhiều lắm"],
-["2022-10-15","Kỷ niệm 15/10/2022",""],
+["2022-10-15","Kỷ niệm 15/10/2022","..."],
 ["2022-10-19","Dẫn em yêu đi ngắm chùa Thầy","Chùa Thầy đẹp tuyệt vời và Ánh cũng thế\nBị lừa cú hơi đau nhưng mà nói chung mọi thứ đều tuyệt vời"],
 ["2022-10-20","20/10 cùng Ánh","Vuiii"],
 ["2022-10-27","Đưa em yêu đi hết con đường tình yêu Sư phạm","Đến giờ muộn nên nhanh đến giờ về quá\nLần sau dẫn Ánh đi tiếp :))."]
