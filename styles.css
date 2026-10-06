@@ -213,3 +213,58 @@ input[type=file]{padding:.7rem}
     max-height:60vh;
   }
 }
+
+
+/* Final fixes: image count preview + exact timeline centerline */
+.story-images .image-more-badge{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  width:58px;
+  height:58px;
+  min-width:58px;
+  padding:0;
+  overflow:hidden;
+  border-radius:14px;
+  background-size:cover;
+  background-position:center;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 8px 20px rgba(0,0,0,.38);
+  display:grid;
+  place-items:center;
+}
+.story-images .image-more-badge::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(15,10,15,.48);
+  backdrop-filter:blur(4px);
+}
+.story-images .image-more-badge span{
+  position:relative;
+  z-index:1;
+  color:#fff;
+  font:800 1rem/1 "Be Vietnam Pro",sans-serif;
+  text-shadow:0 2px 8px rgba(0,0,0,.55);
+}
+.story-images img:not(:first-child){display:none!important}
+
+@media(min-width:701px){
+  .timeline:before{
+    left:calc(50% - 2px);
+    transform:none;
+    width:4px;
+  }
+  .story:after{
+    left:calc(100% + 30px);
+    right:auto;
+    top:30px;
+    width:16px;
+    height:16px;
+    transform:none;
+  }
+  .story:nth-child(even):after{
+    left:-46px;
+    right:auto;
+  }
+}
