@@ -94,6 +94,7 @@ drop policy if exists "authenticated users can create stories" on public.stories
 drop policy if exists "couple members can read stories" on public.stories;
 drop policy if exists "couple members can create stories" on public.stories;
 drop policy if exists "authors can update their stories" on public.stories;
+drop policy if exists "couple members can update stories" on public.stories;
 drop policy if exists "authors can delete their stories" on public.stories;
 
 create policy "couple members can read stories"
@@ -111,18 +112,12 @@ with check (
   and public.is_couple_member(couple_id)
 );
 
-create policy "authors can update their stories"
+create policy "couple members can update stories"
 on public.stories
 for update
 to authenticated
-using (
-  auth.uid() = author_id
-  and public.is_couple_member(couple_id)
-)
-with check (
-  auth.uid() = author_id
-  and public.is_couple_member(couple_id)
-);
+using (public.is_couple_member(couple_id))
+with check (public.is_couple_member(couple_id));
 
 create policy "authors can delete their stories"
 on public.stories
