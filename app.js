@@ -192,28 +192,39 @@ async function setupRealtime() {
     .subscribe();
 }
 
-async function loadUser() {
-  const { data } = await supabase.auth.getUser();
-  currentUser = data.user || null;
+async function loadMembership() {
   currentCoupleId = null;
+  if (!currentUser) return;
 
-  if (currentUser) {
-    const { data: membership, error } = await supabase
-      .from("couple_members")
-      .select("couple_id")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
+  const { data: membership, error } = await supabase
+    .from("couple_members")
+    .select("couple_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
 
-    if (error) console.error(error);
-    else currentCoupleId = membership?.couple_id || null;
+  if (error) {
+    console.error("Membership lookup failed:", error);
+    return;
   }
+
+  currentCoupleId = membership?.couple_id || null;
+}
+
+async function loadUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) console.error("Auth lookup failed:", error);
+
+  currentUser = data.user || null;
+  await loadMembership();
 
   updateAuthUI();
   await setupRealtime();
+
   if (currentUser && currentCoupleId) {
     await migrateLegacyMemories();
     try { await migrateLegacyImages(); } catch (error) { console.error("Legacy image migration:", error); }
   }
+
   await loadStories();
 }
 
@@ -631,11 +642,12 @@ async function uploadNewImages(storyId, files) {
 supabase.auth.onAuthStateChange(async (_event, session) => {
   currentUser = session?.user || null;
 
-  if (!currentUser) {
-    currentCoupleId = null;
-    await setupRealtime();
-  }
-
+  // On mobile browsers, the restored Supabase session can arrive after
+  // the initial page load. Always resolve the couple membership again
+  // before loading the timeline; otherwise the timeline can be cleared
+  // while the gallery (which performs its own membership lookup) still works.
+  await loadMembership();
+  await setupRealtime();
   updateAuthUI();
   await loadStories();
 });
