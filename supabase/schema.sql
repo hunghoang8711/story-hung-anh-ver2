@@ -35,6 +35,13 @@ $$;
 revoke all on function public.is_couple_member(uuid) from public;
 grant execute on function public.is_couple_member(uuid) to authenticated;
 
+-- Members can only see their own membership row.
+alter table public.couple_members enable row level security;
+drop policy if exists "users can read own couple membership" on public.couple_members;
+create policy "users can read own couple membership"
+on public.couple_members for select to authenticated
+using (user_id = auth.uid());
+
 -- Create the couple and attach the two accounts created in Supabase Auth.
 insert into public.couples (name)
 select 'HUNG × ANH'
