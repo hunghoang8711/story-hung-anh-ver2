@@ -616,3 +616,173 @@ input[type=file]{padding:.7rem}
     transform:translateY(-50%);
   }
 }
+
+
+/* FINAL VISUAL POLISH: lively spine, glowing markers, centered heart terminal */
+@media (min-width:701px){
+  .timeline:before{
+    left:50%;
+    top:0;
+    bottom:0;
+    width:4px;
+    transform:translateX(-50%);
+    background:linear-gradient(
+      to bottom,
+      #ff304d 0%,
+      #ff4b63 48%,
+      #e52d48 82%,
+      rgba(229,45,72,.18) 100%
+    );
+    box-shadow:
+      0 0 6px rgba(255,48,77,.35),
+      0 0 18px rgba(229,45,72,.22);
+    border-radius:999px;
+  }
+
+  .timeline > ul > li.story::after{
+    top:30px;
+    width:20px;
+    height:20px;
+    border:3px solid #120f14;
+    background:radial-gradient(circle at 35% 30%,#ff8b9b 0%,#ff4058 38%,#e52d48 100%);
+    box-shadow:
+      0 0 0 4px rgba(255,48,77,.14),
+      0 0 12px rgba(255,48,77,.55),
+      0 4px 12px rgba(0,0,0,.35);
+    z-index:4;
+  }
+
+  .timeline > ul > li.story:nth-child(odd)::after{
+    left:auto;
+    right:-60px;
+    transform:translateY(-50%);
+  }
+
+  .timeline > ul > li.story:nth-child(even)::after{
+    left:-60px;
+    right:auto;
+    transform:translateY(-50%);
+  }
+
+  /* Centered, upright heart; it is the terminal of the spine, not a floating tilted icon. */
+  .timeline:after{
+    content:"♥";
+    position:absolute;
+    left:50%;
+    top:calc(100% + 18px);
+    bottom:auto;
+    transform:translateX(-50%);
+    width:48px;
+    height:48px;
+    display:grid;
+    place-items:center;
+    color:#fff;
+    font:700 27px/1 Georgia,serif;
+    background:radial-gradient(circle,#ff526b 0%,#e52d48 58%,#b91f37 100%);
+    border:3px solid #120f14;
+    border-radius:50%;
+    box-shadow:
+      0 0 0 5px rgba(255,48,77,.13),
+      0 0 20px rgba(255,48,77,.45),
+      0 8px 22px rgba(0,0,0,.35);
+    filter:none;
+    animation:none;
+    z-index:5;
+  }
+
+  /* Short connector + arrow tip makes the heart feel merged with the timeline. */
+  .timeline:after::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-23px;
+    width:4px;
+    height:23px;
+    transform:translateX(-50%);
+    background:#e52d48;
+    border-radius:999px;
+    box-shadow:0 0 10px rgba(229,45,72,.3);
+  }
+
+  .timeline:after::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-29px;
+    width:10px;
+    height:10px;
+    border-top:3px solid #ff526b;
+    border-left:3px solid #ff526b;
+    transform:translateX(-50%) rotate(45deg);
+    filter:drop-shadow(0 0 4px rgba(255,48,77,.45));
+  }
+}
+
+@media (max-width:700px){
+  .timeline:before{
+    left:10px;
+    width:4px;
+    transform:none;
+    background:linear-gradient(to bottom,#ff304d,#e52d48 82%,rgba(229,45,72,.18));
+    box-shadow:0 0 12px rgba(229,45,72,.28);
+    border-radius:999px;
+  }
+
+  .timeline > ul > li.story::after,
+  .timeline > ul > li.story:nth-child(even)::after{
+    left:-32px;
+    right:auto;
+    top:25px;
+    width:18px;
+    height:18px;
+    border:3px solid #120f14;
+    background:radial-gradient(circle at 35% 30%,#ff8b9b,#ff4058 45%,#e52d48);
+    box-shadow:0 0 0 4px rgba(255,48,77,.14),0 0 12px rgba(255,48,77,.5);
+  }
+
+  .timeline:after{
+    content:"♥";
+    position:absolute;
+    left:10px;
+    top:calc(100% + 18px);
+    bottom:auto;
+    transform:translateX(-50%);
+    width:44px;
+    height:44px;
+    display:grid;
+    place-items:center;
+    color:#fff;
+    font:700 25px/1 Georgia,serif;
+    background:radial-gradient(circle,#ff526b,#e52d48 60%,#b91f37);
+    border:3px solid #120f14;
+    border-radius:50%;
+    box-shadow:0 0 0 5px rgba(255,48,77,.13),0 0 18px rgba(255,48,77,.42);
+    filter:none;
+    animation:none;
+    z-index:5;
+  }
+
+  .timeline:after::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-22px;
+    width:4px;
+    height:22px;
+    transform:translateX(-50%);
+    background:#e52d48;
+    border-radius:999px;
+  }
+
+  .timeline:after::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:-28px;
+    width:9px;
+    height:9px;
+    border-top:3px solid #ff526b;
+    border-left:3px solid #ff526b;
+    transform:translateX(-50%) rotate(45deg);
+  }
+}
