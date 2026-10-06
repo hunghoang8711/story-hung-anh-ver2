@@ -524,13 +524,13 @@ input[type=file]{padding:.7rem}
   }
 
   .timeline > ul > li.story:nth-child(odd)::after{
-    right:-40px;
+    right:-20px;
     left:auto;
     transform:translate(50%,-50%);
   }
 
   .timeline > ul > li.story:nth-child(even)::after{
-    left:-40px;
+    left:-20px;
     right:auto;
     transform:translate(-50%,-50%);
   }
