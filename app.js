@@ -1,0 +1,11 @@
+const KEY="our-story-demo-v1";
+const $=s=>document.querySelector(s);
+let stories=JSON.parse(localStorage.getItem(KEY)||"[]");
+let demoUser=localStorage.getItem("our-story-demo-user")||"";
+function esc(v=""){return v.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function render(){stories.sort((a,b)=>b.date.localeCompare(a.date));$("#storyCount").textContent=stories.length;$("#modeText").textContent=demoUser?"Demo: "+demoUser:"Chế độ xem";$("#emptyState").hidden=stories.length>0;$("#timeline").innerHTML=stories.map(s=>{const d=new Date(s.date+"T00:00:00").toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});const imgs=(s.images||[]).map(x=>"<img src='"+x+"' loading='lazy' alt=''>").join("");return "<article class='story'><div class='story-date'>"+d+"</div><h3>"+esc(s.title)+"</h3><p>"+esc(s.content)+"</p>"+(imgs?"<div class='story-images'>"+imgs+"</div>":"")+"<div class='story-author'>✍️ "+esc(s.author||"Một trong hai chúng ta")+"</div></article>"}).join("")}
+$("#addStoryBtn").onclick=()=>{$("#storyDate").value=new Date().toISOString().slice(0,10);$("#storyDialog").showModal()};
+$("#closeDialog").onclick=()=>$("#storyDialog").close();$("#authBtn").onclick=()=>$("#authDialog").showModal();$("#closeAuth").onclick=()=>$("#authDialog").close();
+$("#authForm").addEventListener("submit",e=>{e.preventDefault();const email=$("#demoEmail").value.trim();if(!email)return;demoUser=email;localStorage.setItem("our-story-demo-user",email);$("#authDialog").close();render()});
+$("#storyForm").addEventListener("submit",async e=>{e.preventDefault();const files=[...$("#storyImages").files];const images=await Promise.all(files.slice(0,6).map(f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})));stories.push({id:crypto.randomUUID(),date:$("#storyDate").value,title:$("#storyTitle").value.trim(),content:$("#storyContent").value.trim(),images,author:demoUser||"Khách"});localStorage.setItem(KEY,JSON.stringify(stories));e.target.reset();$("#storyDialog").close();render()});
+render();
