@@ -867,3 +867,53 @@ input[type=file]{padding:.7rem}
 
   .timeline:after::after{display:none}
 }
+
+
+/* Romantic heart snow background */
+.heart-snow-layer{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:0;
+}
+.heart-snow{
+  position:absolute;
+  top:-8vh;
+  left:0;
+  color:rgba(255,105,135,.28);
+  font-family:Arial,sans-serif;
+  line-height:1;
+  filter:drop-shadow(0 0 7px rgba(255,75,110,.18));
+  animation:heartSnowFall linear forwards;
+  user-select:none;
+}
+@keyframes heartSnowFall{
+  0%{transform:translate3d(0,-10vh,0) rotate(0deg);opacity:0}
+  8%{opacity:1}
+  50%{transform:translate3d(var(--drift),55vh,0) rotate(180deg)}
+  92%{opacity:.75}
+  100%{transform:translate3d(calc(var(--drift) * -1),112vh,0) rotate(360deg);opacity:0}
+}
+.heart-click{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:999;
+  pointer-events:none;
+  color:var(--heart-color,#ff5f83);
+  font-size:var(--heart-size,18px);
+  line-height:1;
+  font-family:Arial,sans-serif;
+  filter:drop-shadow(0 0 7px rgba(255,65,100,.55));
+  animation:heartClickBurst .75s cubic-bezier(.16,.72,.28,1) forwards;
+}
+@keyframes heartClickBurst{
+  0%{transform:translate(-50%,-50%) scale(.25) rotate(0deg);opacity:0}
+  15%{opacity:1}
+  100%{transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(1.05) rotate(var(--rotate));opacity:0}
+}
+body > header,body > main,body > aside,body > dialog{position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){
+  .heart-snow-layer,.heart-click{display:none}
+}
