@@ -227,6 +227,7 @@ $("#storyImages").addEventListener("change", () => {
 
 $("#closeDialog").onclick = () => {
   $("#storyDialog").close();
+  $("#storyForm").reset();
   resetStoryDialog();
 };
 
