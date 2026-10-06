@@ -91,3 +91,125 @@ input[type=file]{padding:.7rem}
 .story:nth-child(odd) .story-expand{left:0;right:auto;margin-left:0;margin-right:0}
 .story:nth-child(even) .story-expand{right:0;left:auto;margin-left:0;margin-right:0}
 @media(max-width:700px){.story:nth-child(odd) .story-expand{left:auto;right:0;margin:0}.story:nth-child(even) .story-expand{left:auto;right:0;margin:0}}
+
+
+/* Preview images: keep them on the same outer side as their memory card */
+.story{position:relative}
+.story-images{
+  position:absolute;
+  top:0;
+  height:100%;
+  width:170px;
+  margin:0;
+  padding:0;
+  display:block;
+  overflow:hidden;
+  border-radius:18px;
+}
+.story:nth-child(odd) .story-images{
+  left:auto;
+  right:calc(100% + 18px);
+}
+.story:nth-child(even) .story-images{
+  left:calc(100% + 18px);
+  right:auto;
+}
+.story-images img{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  min-width:0;
+  aspect-ratio:auto!important;
+  border-radius:18px;
+  object-fit:cover;
+  box-shadow:0 10px 28px rgba(0,0,0,.34);
+}
+.story-images .image-more-badge{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  min-width:58px;
+  height:38px;
+  padding:0 12px;
+  border-radius:999px;
+  background:rgba(20,14,20,.62);
+  border:1px solid rgba(255,255,255,.24);
+  backdrop-filter:blur(8px);
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 8px 20px rgba(0,0,0,.3);
+}
+.story-images img:not(:first-child){display:none}
+
+@media(max-width:1000px){
+  .story-images{display:none}
+}
+
+/* Keep timeline markers mathematically centered on the 4px spine */
+@media(min-width:701px){
+  .timeline{position:relative}
+  .timeline:before{
+    left:50%;
+    top:0;
+    bottom:0;
+    width:4px;
+    transform:translateX(-50%);
+  }
+  .story{
+    transform:none;
+  }
+  .story:hover{
+    transform:translateY(-6px);
+  }
+  .story:after{
+    left:auto;
+    right:-46px;
+    top:30px;
+    width:15px;
+    height:15px;
+    transform:none;
+  }
+  .story:nth-child(even):after{
+    left:-46px;
+    right:auto;
+  }
+}
+
+/* The spine is aligned to marker centers, not marker edges */
+@media(max-width:700px){
+  .story-images{display:none}
+  .timeline:before{left:10px;transform:none}
+  .story:after,.story:nth-child(even):after{
+    left:-31.5px;
+    right:auto;
+    top:25px;
+  }
+}
+
+/* Detail gallery: show up to 4 at once, then scroll vertically */
+.detail-modal{
+  max-height:88vh;
+}
+.detail-gallery{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  max-height:58vh;
+  overflow-y:auto;
+  padding-right:4px;
+}
+.detail-gallery img{
+  width:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  border-radius:16px;
+  display:block;
+}
+@media(max-width:700px){
+  .detail-gallery{
+    grid-template-columns:1fr;
+    max-height:60vh;
+  }
+}
