@@ -330,3 +330,46 @@ input[type=file]{padding:.7rem}
   }
   body{padding-bottom:126px}
 }
+
+
+/* Final timeline alignment: one shared center axis for the spine and red markers */
+@media(min-width:701px){
+  .timeline:before{
+    left:50%;
+    transform:translateX(-50%);
+    width:4px;
+  }
+  .story:after,
+  .story:nth-child(even):after{
+    top:30px;
+    left:50%;
+    right:auto;
+    width:16px;
+    height:16px;
+    transform:translateX(-50%);
+  }
+  .story:after{
+    margin-left:calc(50% - 38px + 38px);
+  }
+}
+/* Calculate marker position from the story's outer edge so its center is exactly on the spine. */
+@media(min-width:701px){
+  .story:after{left:calc(100% + 30px);transform:none}
+  .story:nth-child(even):after{left:auto;right:calc(100% + 30px);transform:none}
+}
+@media(max-width:700px){
+  .timeline:before{
+    left:10px;
+    transform:none;
+    width:4px;
+  }
+  .story:after,
+  .story:nth-child(even):after{
+    left:-32px;
+    right:auto;
+    top:25px;
+    width:16px;
+    height:16px;
+    transform:none;
+  }
+}
