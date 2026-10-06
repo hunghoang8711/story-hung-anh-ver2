@@ -4,6 +4,10 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase/config.js";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
 
+const IMAGE_BUCKET = "story-images";
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const MAX_IMAGES = 10;
+
 function esc(v="") {
   return String(v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
@@ -64,6 +68,12 @@ async function loadStories() {
   }
 
   const stories = data || [];
+  const imageRows = stories.length ? ((await supabase.from("story_images").select("story_id, storage_path, sort_order").in("story_id", stories.map(s => s.id)).order("sort_order")).data || []) : [];
+  const imagesByStory = new Map();
+  for (const row of imageRows) {
+    if (!imagesByStory.has(row.story_id)) imagesByStory.set(row.story_id, []);
+    imagesByStory.get(row.story_id).push(row);
+  }
   $("#storyCount").textContent = stories.length;
   $("#emptyState").hidden = stories.length > 0;
 
@@ -74,7 +84,8 @@ async function loadStories() {
     return `<article class="story">
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
-      <p>${esc(s.content)}</p>
+      <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
+      ${imagesByStory.has(s.id) ? `<div class="story-images">${imagesByStory.get(s.id).map(img => `<img src="${supabase.storage.from(IMAGE_BUCKET).getPublicUrl(img.storage_path).data.publicUrl}" alt="Ảnh kỷ niệm" loading="lazy">`).join("")}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}</div>
     </article>`;
   }).join("");
@@ -86,7 +97,16 @@ $("#addStoryBtn").onclick = () => {
   $("#storyDialog").showModal();
 };
 
-$("#closeDialog").onclick = () => $("#storyDialog").close();
+$("#storyImages").addEventListener("change", () => {
+  const files = [...$("#storyImages").files].slice(0, MAX_IMAGES);
+  $("#imagePreview").innerHTML = files.map(f => `<div class="image-preview-item"><img src="${URL.createObjectURL(f)}" alt="${esc(f.name)}"><span>${esc(f.name)}</span></div>`).join("");
+});
+
+$("#closeDialog").onclick = () => {
+  $("#storyDialog").close();
+  $("#storyImages").value = "";
+  $("#imagePreview").innerHTML = "";
+};
 $("#closeAuth").onclick = () => $("#authDialog").close();
 
 $("#authForm").addEventListener("submit", async e => {
@@ -147,7 +167,13 @@ $("#storyForm").addEventListener("submit", async e => {
   const title = $("#storyTitle").value.trim();
   const content = $("#storyContent").value.trim();
   const storyDate = $("#storyDate").value;
+  const files = [...$("#storyImages").files].slice(0, MAX_IMAGES);
   const submit = e.submitter;
+  const invalid = files.find(f => !f.type.startsWith("image/") || f.size > MAX_IMAGE_SIZE);
+  if (invalid) {
+    $("#storyFormError").textContent = "Mỗi ảnh phải là file hình ảnh và không vượt quá 8 MB.";
+    return;
+  }
 
   submit.disabled = true;
   submit.textContent = "Đang lưu…";
@@ -159,7 +185,7 @@ $("#storyForm").addEventListener("submit", async e => {
     return;
   }
 
-  const { error } = await supabase.from("stories").insert({
+  const { data, error } = await supabase.from("stories").insert({
     couple_id: currentCoupleId,
     author_id: currentUser.id,
     story_date: storyDate,
@@ -175,8 +201,22 @@ $("#storyForm").addEventListener("submit", async e => {
     return;
   }
 
+  if (files.length && data?.[0]?.id) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${currentCoupleId}/${data[0].id}/${crypto.randomUUID()}.${ext}`;
+      const upload = await supabase.storage.from(IMAGE_BUCKET).upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
+      if (upload.error) { console.error(upload.error); continue; }
+      const imageInsert = await supabase.from("story_images").insert({ story_id: data[0].id, couple_id: currentCoupleId, storage_path: path, sort_order: i });
+      if (imageInsert.error) { console.error(imageInsert.error); await supabase.storage.from(IMAGE_BUCKET).remove([path]); }
+    }
+  }
+
   $("#storyFormError").textContent = "";
   e.target.reset();
+  $("#storyImages").value = "";
+  $("#imagePreview").innerHTML = "";
   $("#storyDialog").close();
   await loadStories();
 });
