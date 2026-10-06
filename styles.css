@@ -55,3 +55,22 @@ input[type=file]{padding:.7rem}
 .story-images{position:absolute;top:20px;width:150px;display:flex;gap:7px;flex-wrap:nowrap;overflow:hidden;padding:3px}.story:nth-child(odd) .story-images{left:calc(100% + 50px)}.story:nth-child(even) .story-images{right:calc(100% + 50px);justify-content:flex-end}.story-images img{width:62px!important;height:62px!important;min-width:62px;aspect-ratio:1!important;border-radius:12px;object-fit:cover;box-shadow:0 7px 20px rgba(0,0,0,.3)}.image-more-badge{min-width:62px;height:62px;border-radius:12px;background:rgba(229,45,72,.7);display:grid;place-items:center;color:#fff;font-weight:700}
 .story-expand{position:absolute;top:calc(100% + 8px);bottom:auto;padding:4px 13px;font-size:1.15rem;letter-spacing:.08em}.story:nth-child(odd) .story-expand{right:0}.story:nth-child(even) .story-expand{left:0}.story:not(:has(.story-images)) .story-expand{opacity:.35}.story-expand:hover{transform:translateY(2px)}
 @media(max-width:1000px){.story-images{display:none}}@media(max-width:700px){.timeline:before{left:10px;transform:none}.timeline:after{left:10px;transform:translateX(-50%)}}
+
+/* Final timeline alignment + future heart */
+.timeline{position:relative}
+.timeline:before{left:50%;top:0;bottom:0;width:4px;transform:translateX(-50%)}
+.timeline:after{content:"♥";position:absolute;left:50%;top:-58px;bottom:auto;transform:translateX(-50%) rotate(-8deg);width:46px;height:46px;display:grid;place-items:center;color:#ff304d;font-size:34px;background:#120f14;filter:drop-shadow(0 0 10px rgba(255,48,77,.55));animation:heartBeatTop 1.25s ease-in-out infinite;z-index:3}
+@keyframes heartBeatTop{0%,100%{transform:translateX(-50%) scale(1) rotate(-8deg)}14%{transform:translateX(-50%) scale(1.18) rotate(-8deg)}28%{transform:translateX(-50%) scale(1) rotate(-8deg)}42%{transform:translateX(-50%) scale(1.1) rotate(-8deg)}}
+.story:after{right:auto;left:calc(100% + 30.5px);top:30px;width:15px;height:15px}
+.story:nth-child(even):after{left:-45.5px;right:auto}
+.story-expand{position:absolute;top:calc(100% + 7px);bottom:auto;width:auto;min-width:58px;height:32px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(229,45,72,.22);background:rgba(229,45,72,.08);color:#ff7f91;border-radius:999px;font:700 1.05rem/1 "Be Vietnam Pro",sans-serif;letter-spacing:.08em;cursor:pointer;transition:.22s ease}
+.story:nth-child(odd) .story-expand{left:100%;right:auto;margin-left:14px}
+.story:nth-child(even) .story-expand{right:100%;left:auto;margin-right:14px}
+.story-expand.has-images{color:#ff4964;background:rgba(229,45,72,.18);font-weight:800;box-shadow:0 0 14px rgba(229,45,72,.12)}
+.story:not(:has(.story-images)) .story-expand{opacity:.32}
+.story-expand:hover{opacity:1;transform:translateY(2px) scale(1.03)}
+@media(max-width:700px){
+ .timeline:before{left:10px;transform:none}.timeline:after{left:10px;top:-58px;transform:translateX(-50%)}
+ .story:after,.story:nth-child(even):after{left:-31.5px;right:auto;top:25px}
+ .story:nth-child(odd) .story-expand{right:0;left:auto;margin:0}.story:nth-child(even) .story-expand{left:0;right:auto;margin:0}
+}
