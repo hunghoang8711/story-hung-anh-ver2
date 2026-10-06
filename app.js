@@ -204,7 +204,10 @@ async function loadUser() {
 
   updateAuthUI();
   await setupRealtime();
-  if (currentUser && currentCoupleId) {\n    await migrateLegacyMemories();\n    try { await migrateLegacyImages(); } catch (error) { console.error("Legacy image migration:", error); }\n  }
+  if (currentUser && currentCoupleId) {
+    await migrateLegacyMemories();
+    try { await migrateLegacyImages(); } catch (error) { console.error("Legacy image migration:", error); }
+  }
   await loadStories();
 }
 
