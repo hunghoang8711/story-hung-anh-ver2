@@ -25,6 +25,8 @@
 <label>Ngày<input id="storyDate" type="date" required></label>
 <label>Tiêu đề<input id="storyTitle" maxlength="120" placeholder="Ví dụ: Một ngày thật vui" required></label>
 <label>Nội dung<textarea id="storyContent" rows="7" maxlength="10000" placeholder="Viết điều bạn muốn lưu lại..." required></textarea></label>
+<label>Ảnh kỷ niệm <span class="muted">(có thể chọn nhiều ảnh)</span><input id="storyImages" type="file" accept="image/*" multiple></label>
+<div id="imagePreview" class="image-preview" aria-live="polite"></div>
 <p id="storyFormError" class="form-error"></p>
 <button class="btn btn-primary full" type="submit">Lưu kỷ niệm ❤️</button>
 </form></dialog>
