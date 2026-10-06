@@ -312,8 +312,8 @@ async function loadStories() {
       ${images.length ? `<div class="story-images"><img src="${images[0].url}" alt="Ảnh kỷ niệm" loading="lazy">${images.length > 1 ? `<span class="image-more-badge" style="background-image:url(${images[1].url})"><span>+${images.length - 1}</span></span>` : ""}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
       <button type="button" class="story-expand ${images.length ? "has-images" : ""}" data-expand-story="${s.id}" aria-label="Mở ảnh kỷ niệm">${stories.indexOf(s) % 2 === 0 ? "<<<" : ">>>"}</button>
-      ${s.author_id === currentUser?.id ? `<div class="story-actions">
-        <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Sửa kỷ niệm</button>
+      ${currentUser ? `<div class="story-actions">
+        <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Chỉnh sửa & thêm ảnh</button>
       </div>` : ""}
     </li>`;
   }).join("")}</ul>`;
@@ -380,7 +380,7 @@ function resetStoryDialog() {
 
 async function openEditStory(storyId, stories) {
   const story = stories.find(s => String(s.id) === String(storyId));
-  if (!story || story.author_id !== currentUser?.id) return;
+  if (!story || !currentUser || !currentCoupleId) return;
 
   editingStory = story;
   $("#storyDialogEyebrow").textContent = "EDIT MEMORY";
@@ -556,7 +556,7 @@ $("#storyForm").addEventListener("submit", async e => {
       .from("stories")
       .update({ story_date: storyDate, title, content, updated_at: new Date().toISOString() })
       .eq("id", storyId)
-      .eq("author_id", currentUser.id)
+      .eq("couple_id", currentCoupleId)
       .select("id")
       .maybeSingle();
 
@@ -567,7 +567,7 @@ $("#storyForm").addEventListener("submit", async e => {
       return;
     }
     if (!updated) {
-      $("#storyFormError").textContent = "Không thể cập nhật: tài khoản hiện tại không phải người tạo kỷ niệm này.";
+      $("#storyFormError").textContent = "Không thể cập nhật kỷ niệm này. Hãy kiểm tra quyền thành viên của tài khoản.";
       submit.disabled = false;
       submit.textContent = "Lưu thay đổi ❤️";
       return;
@@ -581,7 +581,7 @@ $("#storyForm").addEventListener("submit", async e => {
       const storageResult = await supabase.storage.from(IMAGE_BUCKET).remove([path]);
       if (storageResult.error) console.error(storageResult.error);
 
-      const rowResult = await supabase.from("story_images").delete().eq("id", imageId);
+      const rowResult = await supabase.from("story_images").delete().eq("id", imageId).eq("couple_id", currentCoupleId);
       if (rowResult.error) console.error(rowResult.error);
     }
 
@@ -604,6 +604,11 @@ $("#storyForm").addEventListener("submit", async e => {
 
 async function uploadNewImages(storyId, files) {
   const errors = [];
+  const { count: existingCount } = await supabase.from("story_images")
+    .select("id", { count: "exact", head: true })
+    .eq("story_id", storyId);
+  const startOrder = Number(existingCount || 0);
+
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
@@ -625,7 +630,7 @@ async function uploadNewImages(storyId, files) {
       story_id: storyId,
       couple_id: currentCoupleId,
       storage_path: path,
-      sort_order: i
+      sort_order: startOrder + i
     });
 
     if (imageInsert.error) {
