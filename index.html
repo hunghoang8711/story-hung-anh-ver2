@@ -6,7 +6,7 @@
 <title>Hưng - Ánh Story❤️</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20261012-memory-1">
+<link rel="stylesheet" href="styles.css?v=20261012-location-live-1">
 </head>
 <body>
 <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
@@ -37,8 +37,8 @@
 <label>Tiêu đề<input id="storyTitle" maxlength="120" placeholder="Ví dụ: Một ngày thật vui" required></label>
 <label>Nội dung<textarea id="storyContent" rows="7" maxlength="10000" placeholder="Viết điều bạn muốn lưu lại..." required></textarea></label>
 <label>Địa điểm kỷ niệm <span class="muted">(tìm địa chỉ hoặc nhập thủ công)</span>
-  <div class="location-search-row"><input id="storyLocationSearch" type="search" placeholder="Ví dụ: Hồ Gươm, Hà Nội"><button type="button" class="btn btn-ghost btn-small" id="searchLocationBtn">Tìm</button></div>
-  <div id="locationResults" class="location-results" aria-live="polite"></div>
+  <div class="location-search-row"><input id="storyLocationSearch" type="search" placeholder="Nhập địa điểm, ví dụ: Hồ Gươm, Hà Nội" autocomplete="off" aria-describedby="locationSearchHint"><button type="button" class="btn btn-ghost btn-small" id="searchLocationBtn">Tìm ngay</button></div>
+  <div id="locationResults" class="location-results" aria-live="polite"></div><span id="locationSearchHint" class="muted location-search-hint">Gợi ý địa chỉ sẽ tự hiện khi bạn nhập từ 2 ký tự.</span>
   <input id="storyLocation" type="text" maxlength="300" placeholder="Địa điểm đã chọn / địa chỉ">
 </label>
 <fieldset class="tag-field"><legend>Chương / thẻ kỷ niệm</legend>
@@ -70,5 +70,5 @@
 <button class="btn btn-primary full" type="submit">Đăng nhập</button>
 <button class="btn btn-ghost full" type="button" id="signupBtn">Tạo tài khoản mới</button>
 </form></dialog>
-<script type="module" src="app.js?v=20261012-memory-1"></script>
+<script type="module" src="app.js?v=20261012-location-live-1"></script>
 </body></html>
