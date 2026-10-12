@@ -898,8 +898,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
 
   const nextUserId = session?.user?.id || null;
   const currentUserId = currentUser?.id || null;
-  // The login/logout form also refreshes state explicitly; skip duplicate
-  // auth events when that same user is already fully loaded.
+  // Skip duplicate auth events when the same user is already fully loaded.
   if (nextUserId === currentUserId && currentCoupleId) return;
 
   // Do Supabase calls outside the auth callback to avoid blocking its lock.
