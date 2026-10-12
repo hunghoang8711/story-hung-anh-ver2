@@ -354,31 +354,96 @@ $("#customTagInput")?.addEventListener("keydown", event => {
   if (event.key === "Enter") { event.preventDefault(); $("#addCustomTagBtn").click(); }
 });
 
-$("#searchLocationBtn")?.addEventListener("click", async () => {
-  const query = $("#storyLocationSearch").value.trim();
-  if (!query) { $("#locationResults").textContent = "Nhập địa điểm cần tìm."; return; }
+let locationSearchTimer = null;
+let locationSearchController = null;
+let locationSearchSequence = 0;
+
+async function searchStoryLocation() {
+  const input = $("#storyLocationSearch");
+  const resultsBox = $("#locationResults");
   const btn = $("#searchLocationBtn");
-  btn.disabled = true; btn.textContent = "Đang tìm…";
-  $("#locationResults").textContent = "Đang tìm địa chỉ…";
+  const query = input?.value.trim() || "";
+
+  if (locationSearchController) {
+    locationSearchController.abort();
+    locationSearchController = null;
+  }
+  const sequence = ++locationSearchSequence;
+
+  if (query.length < 2) {
+    resultsBox.innerHTML = query ? '<span class="muted">Nhập thêm ít nhất 2 ký tự để tìm địa chỉ.</span>' : "";
+    return;
+  }
+
+  const controller = new AbortController();
+  locationSearchController = controller;
+  if (btn) btn.disabled = true;
+  resultsBox.innerHTML = '<span class="muted location-loading">Đang tìm địa chỉ phù hợp…</span>';
+
   try {
-    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=" + encodeURIComponent(query);
-    const response = await fetch(url, {headers: {"Accept":"application/json"}});
+    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=" + encodeURIComponent(query);
+    const response = await fetch(url, {
+      headers: {"Accept":"application/json"},
+      signal: controller.signal
+    });
     if (!response.ok) throw new Error("Không thể tìm địa chỉ lúc này.");
-    const results = await response.json();
-    if (!results.length) {
-      $("#locationResults").textContent = "Không tìm thấy địa điểm. Bạn có thể nhập địa chỉ thủ công.";
-    } else {
-      $("#locationResults").innerHTML = results.map((r,i)=>`<button type="button" class="location-result" data-location-index="${i}">${esc(r.display_name)}</button>`).join("");
-      $("#locationResults").querySelectorAll("[data-location-index]").forEach(el => el.onclick = () => {
-        const selected = results[Number(el.dataset.locationIndex)];
-        $("#storyLocation").value = selected.display_name;
-        $("#storyLocationSearch").value = selected.display_name;
-        $("#locationResults").innerHTML = '<span class="location-selected">✓ Đã chọn địa điểm</span>';
-      });
+    const found = await response.json();
+    if (sequence !== locationSearchSequence || input.value.trim() !== query) return;
+
+    if (!found.length) {
+      resultsBox.innerHTML = '<span class="muted">Không tìm thấy địa chỉ phù hợp. Bạn vẫn có thể nhập địa chỉ thủ công bên dưới.</span>';
+      return;
     }
+
+    resultsBox.innerHTML = found.map((item, index) =>
+      `<button type="button" class="location-result" data-location-index="${index}"><span class="location-result-name">${esc(item.name || item.address?.road || item.display_name.split(",")[0])}</span><span class="location-result-detail">${esc(item.display_name)}</span></button>`
+    ).join("");
+
+    resultsBox.querySelectorAll("[data-location-index]").forEach(el => {
+      el.addEventListener("click", () => {
+        const selected = found[Number(el.dataset.locationIndex)];
+        $("#storyLocation").value = selected.display_name;
+        input.value = selected.display_name;
+        resultsBox.innerHTML = '<span class="location-selected">✓ Đã chọn địa điểm</span>';
+        if (locationSearchController) locationSearchController.abort();
+      });
+    });
   } catch (error) {
-    $("#locationResults").textContent = error.message || "Tìm kiếm địa điểm thất bại.";
-  } finally { btn.disabled = false; btn.textContent = "Tìm"; }
+    if (error.name === "AbortError") return;
+    if (sequence === locationSearchSequence) {
+      resultsBox.innerHTML = '<span class="muted">Tìm kiếm địa chỉ gặp lỗi. Bạn có thể nhập địa chỉ thủ công.</span>';
+    }
+  } finally {
+    if (sequence === locationSearchSequence && btn) btn.disabled = false;
+    if (locationSearchController === controller) locationSearchController = null;
+  }
+}
+
+$("#storyLocationSearch")?.addEventListener("input", () => {
+  clearTimeout(locationSearchTimer);
+  if (locationSearchController) {
+    locationSearchController.abort();
+    locationSearchController = null;
+  }
+  const query = $("#storyLocationSearch").value.trim();
+  if (query.length < 2) {
+    $("#locationResults").innerHTML = query ? '<span class="muted">Nhập thêm ít nhất 2 ký tự để tìm địa chỉ.</span>' : "";
+    return;
+  }
+  locationSearchTimer = setTimeout(searchStoryLocation, 500);
+});
+
+$("#searchLocationBtn")?.addEventListener("click", () => {
+  clearTimeout(locationSearchTimer);
+  searchStoryLocation();
+});
+
+$("#storyLocationSearch")?.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    clearTimeout(locationSearchTimer);
+    searchStoryLocation();
+  }
 });
 
 async function loadStories() {
