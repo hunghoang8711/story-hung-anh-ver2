@@ -20,6 +20,8 @@ let realtimeChannel = null;
 let editingStory = null;
 let timelineStories = [];
 let timelineImages = new Map();
+let customStoryTags = new Set();
+let memorySearchTerm = "";
 
 const LEGACY_MEMORIES = [
 ["2022-07-07","Ngày khởi đầu","Ngày bắt đầu làm quen với Ánh"],
@@ -265,6 +267,120 @@ async function getStoryImages(storyIds) {
   return imagesByStory;
 }
 
+
+function updateDaysTogether() {
+  const start = new Date("2022-10-06T00:00:00");
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.max(0, Math.floor((today - start) / 86400000) + 1);
+  const el = $("#daysTogether");
+  if (el) el.textContent = days.toLocaleString("vi-VN");
+}
+
+function filterStories(stories, term) {
+  const q = String(term || "").trim().toLocaleLowerCase("vi");
+  if (!q) return stories;
+  return stories.filter(story => [story.title, story.content, story.location, ...(Array.isArray(story.tags) ? story.tags : [])]
+    .some(value => String(value || "").toLocaleLowerCase("vi").includes(q)));
+}
+
+function renderOnThisDay(stories) {
+  const box = $("#onThisDay");
+  if (!box) return;
+  const today = new Date();
+  const mmdd = String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+  const matches = stories.filter(s => s.story_date.slice(5) === mmdd);
+  if (!matches.length) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = `<p class="eyebrow">ON THIS DAY · NGÀY NÀY NĂM XƯA</p>
+    <div class="on-this-day-list">${matches.map(s => `<button type="button" class="on-this-day-item" data-on-this-day="${s.id}">
+      <span>${new Date(s.story_date+"T00:00:00").getFullYear()}</span><strong>${esc(s.title)}</strong>
+    </button>`).join("")}</div>`;
+  box.querySelectorAll("[data-on-this-day]").forEach(btn => btn.onclick = () => openStoryDetail(btn.dataset.onThisDay));
+}
+
+function renderCustomTags() {
+  const box = $("#customTags");
+  if (!box) return;
+  box.innerHTML = [...customStoryTags].map(tag => `<button type="button" class="story-tag removable-tag" data-remove-tag="${esc(tag)}">${esc(tag)} ×</button>`).join("");
+  box.querySelectorAll("[data-remove-tag]").forEach(btn => btn.onclick = () => {
+    customStoryTags.delete(btn.dataset.removeTag); renderCustomTags();
+  });
+}
+
+$("#memorySearch")?.addEventListener("input", event => {
+  memorySearchTerm = event.target.value;
+  const filtered = filterStories(timelineStories, memorySearchTerm);
+  $("#timeline").innerHTML = "";
+  const old = timelineStories;
+  if (!memorySearchTerm.trim()) { loadStories(); return; }
+  const images = timelineImages;
+  const original = timelineStories;
+  timelineStories = filtered;
+  renderFilteredTimeline(filtered, images);
+  timelineStories = original;
+});
+
+function renderFilteredTimeline(stories, imagesByStory) {
+  if (!stories.length) {
+    $("#timeline").innerHTML = '<div class="search-empty">Không tìm thấy kỷ niệm phù hợp. Thử từ khóa khác nhé.</div>';
+    return;
+  }
+  $("#timeline").innerHTML = `<ul>${stories.map(s => {
+    const d = new Date(s.story_date+"T00:00:00").toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const images = imagesByStory.get(s.id) || [];
+    const tags = Array.isArray(s.tags) ? s.tags : [];
+    const [year,month] = s.story_date.split("-");
+    return `<li class="story" data-year="${year}" data-month="${year}-${month}" id="story-${s.id}">
+      <div class="story-date">${d}</div><h3>${esc(s.title)}</h3><p>${esc(s.content).replace(/\n/g,"<br>")}</p>
+      ${s.location ? `<p class="story-location">📍 ${esc(s.location)}</p>` : ""}
+      ${tags.length ? `<div class="story-tags">${tags.map(tag=>`<span class="story-tag">${esc(tag)}</span>`).join("")}</div>` : ""}
+      ${images.length ? `<div class="story-images"><img src="${images[0].url}" alt="Ảnh kỷ niệm" loading="lazy"></div>` : ""}
+      <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}</div>
+      <button type="button" class="story-expand ${images.length ? "has-images" : ""}" data-expand-story="${s.id}">Mở ảnh</button>
+      <div class="story-actions"><button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Chỉnh sửa & thêm ảnh</button></div>
+    </li>`;
+  }).join("")}</ul>`;
+  document.querySelectorAll(".story-expand").forEach(btn=>btn.onclick=()=>openStoryDetail(btn.dataset.expandStory));
+  document.querySelectorAll(".edit-story-btn").forEach(btn=>btn.onclick=()=>openEditStory(btn.dataset.id,timelineStories));
+}
+
+$("#addCustomTagBtn")?.addEventListener("click", () => {
+  const input = $("#customTagInput");
+  const tag = input.value.trim().replace(/^#+/,"").slice(0,30);
+  if (!tag) return;
+  customStoryTags.add(tag); input.value = ""; renderCustomTags();
+});
+$("#customTagInput")?.addEventListener("keydown", event => {
+  if (event.key === "Enter") { event.preventDefault(); $("#addCustomTagBtn").click(); }
+});
+
+$("#searchLocationBtn")?.addEventListener("click", async () => {
+  const query = $("#storyLocationSearch").value.trim();
+  if (!query) { $("#locationResults").textContent = "Nhập địa điểm cần tìm."; return; }
+  const btn = $("#searchLocationBtn");
+  btn.disabled = true; btn.textContent = "Đang tìm…";
+  $("#locationResults").textContent = "Đang tìm địa chỉ…";
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=" + encodeURIComponent(query);
+    const response = await fetch(url, {headers: {"Accept":"application/json"}});
+    if (!response.ok) throw new Error("Không thể tìm địa chỉ lúc này.");
+    const results = await response.json();
+    if (!results.length) {
+      $("#locationResults").textContent = "Không tìm thấy địa điểm. Bạn có thể nhập địa chỉ thủ công.";
+    } else {
+      $("#locationResults").innerHTML = results.map((r,i)=>`<button type="button" class="location-result" data-location-index="${i}">${esc(r.display_name)}</button>`).join("");
+      $("#locationResults").querySelectorAll("[data-location-index]").forEach(el => el.onclick = () => {
+        const selected = results[Number(el.dataset.locationIndex)];
+        $("#storyLocation").value = selected.display_name;
+        $("#storyLocationSearch").value = selected.display_name;
+        $("#locationResults").innerHTML = '<span class="location-selected">✓ Đã chọn địa điểm</span>';
+      });
+    }
+  } catch (error) {
+    $("#locationResults").textContent = error.message || "Tìm kiếm địa điểm thất bại.";
+  } finally { btn.disabled = false; btn.textContent = "Tìm"; }
+});
+
 async function loadStories() {
   if (!currentUser || !currentCoupleId) {
     $("#timeline").innerHTML = "";
@@ -275,7 +391,7 @@ async function loadStories() {
 
   const { data, error } = await supabase
     .from("stories")
-    .select("id, story_date, title, content, created_at, updated_at, author_id")
+    .select("id, story_date, title, content, location, tags, created_at, updated_at, author_id")
     .eq("couple_id", currentCoupleId)
     .order("story_date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -297,8 +413,11 @@ async function loadStories() {
   timelineStories = stories;
   timelineImages = imagesByStory;
   renderTimelineNav(stories);
+  updateDaysTogether();
+  renderOnThisDay(stories);
+  const visibleStories = filterStories(stories, memorySearchTerm);
 
-  $("#timeline").innerHTML = `<ul>${stories.map(s => {
+  $("#timeline").innerHTML = visibleStories.length ? `<ul>${visibleStories.map(s => {
     const d = new Date(s.story_date + "T00:00:00").toLocaleDateString("vi-VN", {
       day: "2-digit", month: "2-digit", year: "numeric"
     });
@@ -309,6 +428,8 @@ async function loadStories() {
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
+      ${s.location ? `<p class="story-location">📍 ${esc(s.location)}</p>` : ""}
+      ${(Array.isArray(s.tags) && s.tags.length) ? `<div class="story-tags">${s.tags.map(tag => `<span class="story-tag">${esc(tag)}</span>`).join("")}</div>` : ""}
       ${images.length ? `<div class="story-images"><img src="${images[0].url}" alt="Ảnh kỷ niệm" loading="lazy">${images.length > 1 ? `<span class="image-more-badge" style="background-image:url(${images[1].url})"><span>+${images.length - 1}</span></span>` : ""}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
       <button type="button" class="story-expand ${images.length ? "has-images" : ""}" data-expand-story="${s.id}" aria-label="Mở ảnh kỷ niệm">${stories.indexOf(s) % 2 === 0 ? "<<<" : ">>>"}</button>
@@ -316,7 +437,7 @@ async function loadStories() {
         <button type="button" class="btn btn-ghost btn-small edit-story-btn" data-id="${s.id}">✏️ Chỉnh sửa & thêm ảnh</button>
       </div>` : ""}
     </li>`;
-  }).join("")}</ul>`;
+  }).join("")}</ul>` : `<div class="search-empty">Không tìm thấy kỷ niệm phù hợp. Thử từ khóa khác nhé.</div>`;
 
   document.querySelectorAll(".story-expand").forEach(btn => {
     btn.onclick = () => openStoryDetail(btn.dataset.expandStory);
@@ -338,7 +459,7 @@ function renderTimelineNav(stories) {
   }
   nav.innerHTML = [...groups.entries()].map(([year, months]) => `
     <div class="nav-year">
-      <button type="button" class="year-link" data-nav-year="${year}">${year}</button>
+      <button type="button" class="year-link" data-nav-year="${year}">Chương ${[...groups.keys()].indexOf(year)+1} · ${year}</button>
       <div class="month-list">
         ${[...months].sort((a, b) => Number(b) - Number(a)).map(month => `<button type="button" class="month-link" data-nav-month="${year}-${month}">${["January","February","March","April","May","June","July","August","September","October","November","December"][Number(month)-1]} -T${Number(month)}</button>`).join("")}
       </div>
@@ -356,12 +477,13 @@ async function openStoryDetail(storyId) {
   const story = timelineStories.find(s => String(s.id) === String(storyId));
   if (!story) return;
   const images = timelineImages.get(story.id) || [];
+  const tags = Array.isArray(story.tags) ? story.tags : [];
   const d = new Date(story.story_date + "T00:00:00").toLocaleDateString("vi-VN", {day:"2-digit",month:"2-digit",year:"numeric"});
   $("#detailContent").innerHTML = `
     <p class="eyebrow">MEMORY</p>
     <div class="detail-date">${d}</div>
     <h2>${esc(story.title)}</h2>
-    <p class="detail-text">${esc(story.content).replace(/\\n/g,"<br>")}</p>
+    <p class="detail-text">${esc(story.content).replace(/\\n/g,"<br>")}</p>\n    ${story.location ? `<p class="story-location">📍 ${esc(story.location)} · <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(story.location)}" target="_blank" rel="noopener">Mở bản đồ</a></p>` : ""}\n    ${tags.length ? `<div class="story-tags">${tags.map(tag => `<span class="story-tag">${esc(tag)}</span>`).join("")}</div>` : ""}
     ${images.length ? `<div class="detail-gallery">${images.map((img,i) => `<figure><img src="${img.url}" alt="Ảnh kỷ niệm ${i+1}" loading="lazy"><figcaption>Ảnh ${i+1}</figcaption></figure>`).join("")}</div>` : "<p class='muted'>Kỷ niệm này chưa có ảnh.</p>"}
   `;
   $("#storyDetailDialog").showModal();
@@ -375,6 +497,13 @@ function resetStoryDialog() {
   $("#existingImages").innerHTML = "";
   $("#imagePreview").innerHTML = "";
   $("#storyImages").value = "";
+  $("#storyLocationSearch").value = "";
+  $("#storyLocation").value = "";
+  $("#locationResults").innerHTML = "";
+  $("#customTagInput").value = "";
+  customStoryTags = new Set();
+  document.querySelectorAll("#tagSuggestions input").forEach(input => input.checked = false);
+  renderCustomTags();
   $("#storyFormError").textContent = "";
 }
 
@@ -389,6 +518,15 @@ async function openEditStory(storyId, stories) {
   $("#storyDate").value = story.story_date;
   $("#storyTitle").value = story.title;
   $("#storyContent").value = story.content;
+  $("#storyLocation").value = story.location || "";
+  $("#storyLocationSearch").value = story.location || "";
+  $("#locationResults").innerHTML = "";
+  $("#customTagInput").value = "";
+  const existingTags = Array.isArray(story.tags) ? story.tags : [];
+  document.querySelectorAll("#tagSuggestions input").forEach(input => input.checked = existingTags.includes(input.value));
+  const suggestedTags = [...document.querySelectorAll("#tagSuggestions input")].map(input => input.value);
+  customStoryTags = new Set(existingTags.filter(tag => !suggestedTags.includes(tag)));
+  renderCustomTags();
   $("#storyImages").value = "";
   $("#imagePreview").innerHTML = "";
   $("#storyFormError").textContent = "";
@@ -508,6 +646,8 @@ $("#storyForm").addEventListener("submit", async e => {
   const title = $("#storyTitle").value.trim();
   const content = $("#storyContent").value.trim();
   const storyDate = $("#storyDate").value;
+  const location = $("#storyLocation").value.trim();
+  const tags = [...new Set([...document.querySelectorAll("#tagSuggestions input:checked")].map(input => input.value).concat([...customStoryTags]))];
   const files = [...$("#storyImages").files].slice(0, MAX_IMAGES);
   const submit = e.submitter;
 
@@ -531,7 +671,9 @@ $("#storyForm").addEventListener("submit", async e => {
       author_id: currentUser.id,
       story_date: storyDate,
       title,
-      content
+      content,
+      location: location || null,
+      tags
     }).select("id").single();
 
     if (error) {
@@ -554,7 +696,7 @@ $("#storyForm").addEventListener("submit", async e => {
 
     const { data: updated, error } = await supabase
       .from("stories")
-      .update({ story_date: storyDate, title, content, updated_at: new Date().toISOString() })
+      .update({ story_date: storyDate, title, content, location: location || null, tags, updated_at: new Date().toISOString() })
       .eq("id", storyId)
       .eq("couple_id", currentCoupleId)
       .select("id")

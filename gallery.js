@@ -80,9 +80,10 @@ async function loadGallery() {
     const date = p.date
       ? new Date(p.date + "T00:00:00").toLocaleDateString("vi-VN")
       : "";
-    return `<article class="gallery-card">
+    const tilt = index % 2 === 0 ? "-1.5deg" : "1.4deg";
+    return `<article class="gallery-card polaroid" style="--tilt:${tilt}">
       <img src="${p.url}" alt="${esc(p.title)}" loading="lazy" data-photo-index="${index}">
-      <div class="gallery-meta">
+      <div class="gallery-meta"><span class="polaroid-caption">Hưng × Ánh</span>
         <strong>${esc(p.title)}</strong>
         <span>${date}</span>
       </div>
