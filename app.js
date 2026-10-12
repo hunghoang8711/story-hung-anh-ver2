@@ -497,6 +497,13 @@ function resetStoryDialog() {
   $("#existingImages").innerHTML = "";
   $("#imagePreview").innerHTML = "";
   $("#storyImages").value = "";
+  $("#storyLocationSearch").value = "";
+  $("#storyLocation").value = "";
+  $("#locationResults").innerHTML = "";
+  $("#customTagInput").value = "";
+  customStoryTags = new Set();
+  document.querySelectorAll("#tagSuggestions input").forEach(input => input.checked = false);
+  renderCustomTags();
   $("#storyFormError").textContent = "";
 }
 
@@ -511,6 +518,15 @@ async function openEditStory(storyId, stories) {
   $("#storyDate").value = story.story_date;
   $("#storyTitle").value = story.title;
   $("#storyContent").value = story.content;
+  $("#storyLocation").value = story.location || "";
+  $("#storyLocationSearch").value = story.location || "";
+  $("#locationResults").innerHTML = "";
+  $("#customTagInput").value = "";
+  const existingTags = Array.isArray(story.tags) ? story.tags : [];
+  document.querySelectorAll("#tagSuggestions input").forEach(input => input.checked = existingTags.includes(input.value));
+  const suggestedTags = [...document.querySelectorAll("#tagSuggestions input")].map(input => input.value);
+  customStoryTags = new Set(existingTags.filter(tag => !suggestedTags.includes(tag)));
+  renderCustomTags();
   $("#storyImages").value = "";
   $("#imagePreview").innerHTML = "";
   $("#storyFormError").textContent = "";
