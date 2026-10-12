@@ -380,7 +380,8 @@ $("#searchLocationBtn")?.addEventListener("click", async () => {
     $("#locationResults").textContent = error.message || "Tìm kiếm địa điểm thất bại.";
   } finally { btn.disabled = false; btn.textContent = "Tìm"; }
 });
-\nasync function loadStories() {
+
+async function loadStories() {
   if (!currentUser || !currentCoupleId) {
     $("#timeline").innerHTML = "";
     $("#storyCount").textContent = "0";
