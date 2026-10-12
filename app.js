@@ -427,6 +427,8 @@ $("#searchLocationBtn")?.addEventListener("click", async () => {
       <div class="story-date">${d}</div>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.content).replace(/\n/g, "<br>")}</p>
+      ${s.location ? `<p class="story-location">📍 ${esc(s.location)}</p>` : ""}
+      ${(Array.isArray(s.tags) && s.tags.length) ? `<div class="story-tags">${s.tags.map(tag => `<span class="story-tag">${esc(tag)}</span>`).join("")}</div>` : ""}
       ${images.length ? `<div class="story-images"><img src="${images[0].url}" alt="Ảnh kỷ niệm" loading="lazy">${images.length > 1 ? `<span class="image-more-badge" style="background-image:url(${images[1].url})"><span>+${images.length - 1}</span></span>` : ""}</div>` : ""}
       <div class="story-author">❤️ ${s.author_id === currentUser?.id ? "Bạn" : "Người ấy"}${s.updated_at !== s.created_at ? " · Đã chỉnh sửa" : ""}</div>
       <button type="button" class="story-expand ${images.length ? "has-images" : ""}" data-expand-story="${s.id}" aria-label="Mở ảnh kỷ niệm">${stories.indexOf(s) % 2 === 0 ? "<<<" : ">>>"}</button>
@@ -474,6 +476,7 @@ async function openStoryDetail(storyId) {
   const story = timelineStories.find(s => String(s.id) === String(storyId));
   if (!story) return;
   const images = timelineImages.get(story.id) || [];
+  const tags = Array.isArray(story.tags) ? story.tags : [];
   const d = new Date(story.story_date + "T00:00:00").toLocaleDateString("vi-VN", {day:"2-digit",month:"2-digit",year:"numeric"});
   $("#detailContent").innerHTML = `
     <p class="eyebrow">MEMORY</p>
@@ -626,6 +629,8 @@ $("#storyForm").addEventListener("submit", async e => {
   const title = $("#storyTitle").value.trim();
   const content = $("#storyContent").value.trim();
   const storyDate = $("#storyDate").value;
+  const location = $("#storyLocation").value.trim();
+  const tags = [...new Set([...document.querySelectorAll("#tagSuggestions input:checked")].map(input => input.value).concat([...customStoryTags]))];
   const files = [...$("#storyImages").files].slice(0, MAX_IMAGES);
   const submit = e.submitter;
 
@@ -649,7 +654,9 @@ $("#storyForm").addEventListener("submit", async e => {
       author_id: currentUser.id,
       story_date: storyDate,
       title,
-      content
+      content,
+      location: location || null,
+      tags
     }).select("id").single();
 
     if (error) {
