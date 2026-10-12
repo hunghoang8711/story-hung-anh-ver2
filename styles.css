@@ -1023,3 +1023,11 @@ body > header,body > main,body > aside,body > dialog{position:relative;z-index:1
 .polaroid .gallery-meta span{color:#7c6870}
 .polaroid .polaroid-caption{display:block;font-family:cursive;font-size:.85rem;color:#9d5368;margin:0 0 5px}
 @media(max-width:700px){.story-stats{gap:10px}.memory-tools{margin-top:-8px}.polaroid{padding:7px 7px 0}.polaroid .gallery-meta{padding:9px 3px 11px}}
+
+
+/* Live address autocomplete */
+.location-search-hint{display:block;margin-top:5px;font-size:.72rem}
+.location-result{display:flex;flex-direction:column;gap:3px}
+.location-result-name{font-weight:700;font-size:.82rem}
+.location-result-detail{font-size:.7rem;line-height:1.45;color:var(--muted);font-weight:400}
+.location-loading{font-size:.78rem;padding:5px 2px}
