@@ -954,8 +954,7 @@ loadUser();
     const story=event.target.closest(".story");
     if(!story) return;
     document.querySelectorAll(".story.effect-selected").forEach(el=>el.classList.remove("effect-selected"));
-    story.classList.add("effect-selected","marker-pop");
-    setTimeout(()=>story.classList.remove("marker-pop"),700);
+    story.classList.add("effect-selected");
   });
 
   // 6 + 7. Heartbeat markers and reveal cards as they enter the viewport.
@@ -965,7 +964,6 @@ loadUser();
       entries.forEach(entry=>{
         if(!entry.isIntersecting) return;
         entry.target.classList.add("revealed");
-        if(entry.intersectionRatio>.2) entry.target.classList.add("marker-pop");
         observer.unobserve(entry.target);
       });
     },{threshold:[0,.2,.45],rootMargin:"0px 0px -8% 0px"});

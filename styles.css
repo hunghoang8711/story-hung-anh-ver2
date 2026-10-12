@@ -1031,3 +1031,23 @@ body > header,body > main,body > aside,body > dialog{position:relative;z-index:1
 .location-result-name{font-weight:700;font-size:.82rem}
 .location-result-detail{font-size:.7rem;line-height:1.45;color:var(--muted);font-weight:400}
 .location-loading{font-size:.78rem;padding:5px 2px}
+
+
+/* Timeline markers: steady red center with a soft pink blurred gradient halo */
+.story:after,
+.story:nth-child(even):after{
+  background:radial-gradient(circle at 35% 30%,#ff667e 0%,#e52d48 62%,#c91d39 100%);
+  border:2px solid rgba(255,235,240,.92);
+  box-shadow:0 0 0 5px rgba(255,91,125,.16),0 0 18px 7px rgba(255,91,125,.22);
+  filter:drop-shadow(0 0 5px rgba(255,91,125,.24));
+  animation:none!important;
+  transition:box-shadow .25s ease,filter .25s ease;
+}
+.story.effect-selected:after,
+.story.marker-pop:after{
+  animation:none!important;
+  transform:none;
+}
+.story.effect-selected:after{
+  box-shadow:0 0 0 6px rgba(255,91,125,.18),0 0 22px 8px rgba(255,91,125,.26);
+}
