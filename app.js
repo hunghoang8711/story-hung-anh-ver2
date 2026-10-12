@@ -715,7 +715,7 @@ $("#authForm").addEventListener("submit", async e => {
 
   $("#authError").textContent = "";
   $("#authDialog").close();
-  await loadUser();
+  // The auth-state listener refreshes membership and timeline once.
 });
 
 $("#signupBtn").onclick = async () => {
@@ -743,7 +743,7 @@ $("#authBtn").onclick = async () => {
   }
 
   await supabase.auth.signOut();
-  await loadUser();
+  // The auth-state listener clears the timeline after sign-out.
 };
 
 $("#storyForm").addEventListener("submit", async e => {
