@@ -22,6 +22,9 @@ let timelineStories = [];
 let timelineImages = new Map();
 let customStoryTags = new Set();
 let memorySearchTerm = "";
+let storiesLoadPromise = null;
+let realtimeReloadTimer = null;
+const legacyMigrationScheduled = new Set();
 
 const LEGACY_MEMORIES = [
 ["2022-07-07","Ngày khởi đầu","Ngày bắt đầu làm quen với Ánh"],
@@ -188,8 +191,13 @@ async function setupRealtime() {
       schema: "public",
       table: "stories",
       filter: "couple_id=eq." + currentCoupleId
-    }, async () => {
-      await loadStories();
+    }, () => {
+      // Coalesce bursts of database events into one refresh.
+      clearTimeout(realtimeReloadTimer);
+      realtimeReloadTimer = setTimeout(() => {
+        realtimeReloadTimer = null;
+        void loadStories();
+      }, 300);
     })
     .subscribe();
 }
@@ -212,6 +220,26 @@ async function loadMembership() {
   currentCoupleId = membership?.couple_id || null;
 }
 
+function scheduleLegacyMigrations(userId, coupleId) {
+  if (!userId || !coupleId || legacyMigrationScheduled.has(coupleId)) return;
+  legacyMigrationScheduled.add(coupleId);
+
+  // Render existing memories first; old-site migration must not block login.
+  setTimeout(async () => {
+    if (currentUser?.id !== userId || currentCoupleId !== coupleId) {
+      legacyMigrationScheduled.delete(coupleId);
+      return;
+    }
+    try {
+      await migrateLegacyMemories();
+      await migrateLegacyImages();
+    } catch (error) {
+      console.error("Legacy migration:", error);
+      legacyMigrationScheduled.delete(coupleId);
+    }
+  }, 1200);
+}
+
 async function loadUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error) console.error("Auth lookup failed:", error);
@@ -221,13 +249,11 @@ async function loadUser() {
 
   updateAuthUI();
   await setupRealtime();
+  await loadStories();
 
   if (currentUser && currentCoupleId) {
-    await migrateLegacyMemories();
-    try { await migrateLegacyImages(); } catch (error) { console.error("Legacy image migration:", error); }
+    scheduleLegacyMigrations(currentUser.id, currentCoupleId);
   }
-
-  await loadStories();
 }
 
 function updateAuthUI() {
@@ -251,17 +277,23 @@ async function getStoryImages(storyIds) {
   }
 
   const imagesByStory = new Map();
+  const rows = data || [];
+  // Use small parallel batches instead of waiting for every signed URL serially.
+  // Batching avoids overwhelming Storage on accounts with many memories/photos.
+  const batchSize = 6;
+  for (let start = 0; start < rows.length; start += batchSize) {
+    const batch = rows.slice(start, start + batchSize);
+    const signedResults = await Promise.all(batch.map(row =>
+      supabase.storage.from(IMAGE_BUCKET).createSignedUrl(row.storage_path, 3600)
+    ));
 
-  for (const row of data || []) {
-    const signed = await supabase.storage
-      .from(IMAGE_BUCKET)
-      .createSignedUrl(row.storage_path, 3600);
-
-    if (signed.error) continue;
-
-    row.url = signed.data.signedUrl;
-    if (!imagesByStory.has(row.story_id)) imagesByStory.set(row.story_id, []);
-    imagesByStory.get(row.story_id).push(row);
+    batch.forEach((row, index) => {
+      const signed = signedResults[index];
+      if (signed.error) return;
+      row.url = signed.data.signedUrl;
+      if (!imagesByStory.has(row.story_id)) imagesByStory.set(row.story_id, []);
+      imagesByStory.get(row.story_id).push(row);
+    });
   }
 
   return imagesByStory;
@@ -447,6 +479,16 @@ $("#storyLocationSearch")?.addEventListener("keydown", event => {
 });
 
 async function loadStories() {
+  if (storiesLoadPromise) return storiesLoadPromise;
+  storiesLoadPromise = loadStoriesInternal();
+  try {
+    return await storiesLoadPromise;
+  } finally {
+    storiesLoadPromise = null;
+  }
+}
+
+async function loadStoriesInternal() {
   if (!currentUser || !currentCoupleId) {
     $("#timeline").innerHTML = "";
     $("#storyCount").textContent = "0";
@@ -673,7 +715,7 @@ $("#authForm").addEventListener("submit", async e => {
 
   $("#authError").textContent = "";
   $("#authDialog").close();
-  await loadUser();
+  // The auth-state listener refreshes membership and timeline once.
 });
 
 $("#signupBtn").onclick = async () => {
@@ -701,7 +743,7 @@ $("#authBtn").onclick = async () => {
   }
 
   await supabase.auth.signOut();
-  await loadUser();
+  // The auth-state listener clears the timeline after sign-out.
 };
 
 $("#storyForm").addEventListener("submit", async e => {
@@ -849,17 +891,28 @@ async function uploadNewImages(storyId, files) {
   return errors;
 }
 
-supabase.auth.onAuthStateChange(async (_event, session) => {
-  currentUser = session?.user || null;
+supabase.auth.onAuthStateChange((_event, session) => {
+  // INITIAL_SESSION is handled by loadUser() below. Processing it here too
+  // caused duplicate membership/story requests on every page opening.
+  if (_event === "INITIAL_SESSION") return;
 
-  // On mobile browsers, the restored Supabase session can arrive after
-  // the initial page load. Always resolve the couple membership again
-  // before loading the timeline; otherwise the timeline can be cleared
-  // while the gallery (which performs its own membership lookup) still works.
-  await loadMembership();
-  await setupRealtime();
-  updateAuthUI();
-  await loadStories();
+  const nextUserId = session?.user?.id || null;
+  const currentUserId = currentUser?.id || null;
+  // The login/logout form also refreshes state explicitly; skip duplicate
+  // auth events when that same user is already fully loaded.
+  if (nextUserId === currentUserId && currentCoupleId) return;
+
+  // Do Supabase calls outside the auth callback to avoid blocking its lock.
+  setTimeout(async () => {
+    currentUser = session?.user || null;
+    await loadMembership();
+    await setupRealtime();
+    updateAuthUI();
+    await loadStories();
+    if (currentUser && currentCoupleId) {
+      scheduleLegacyMigrations(currentUser.id, currentCoupleId);
+    }
+  }, 0);
 });
 
 loadUser();

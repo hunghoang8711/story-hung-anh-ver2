@@ -59,17 +59,23 @@ async function loadGallery() {
     return;
   }
 
+  const rows = data || [];
   const photos = [];
-  for (const row of data || []) {
-    const signed = await supabase.storage.from(IMAGE_BUCKET)
-      .createSignedUrl(row.storage_path, 3600);
-    if (signed.error) continue;
-
-    photos.push({
-      ...row,
-      url: signed.data.signedUrl,
-      title: row.stories?.title || "Kỷ niệm",
-      date: row.stories?.story_date || ""
+  const batchSize = 6;
+  for (let start = 0; start < rows.length; start += batchSize) {
+    const batch = rows.slice(start, start + batchSize);
+    const signedResults = await Promise.all(batch.map(row =>
+      supabase.storage.from(IMAGE_BUCKET).createSignedUrl(row.storage_path, 3600)
+    ));
+    batch.forEach((row, index) => {
+      const signed = signedResults[index];
+      if (signed.error) return;
+      photos.push({
+        ...row,
+        url: signed.data.signedUrl,
+        title: row.stories?.title || "Kỷ niệm",
+        date: row.stories?.story_date || ""
+      });
     });
   }
 
